@@ -41,7 +41,7 @@
     "@types/node": "^18.11.9",
     "@types/pako": "^2.0.0",
     "@types/qrcode": "^1.5.0",
-    "nodemon": "^2.0.20",
+    "nodemon": "^2.0.22",
     "pkg": "^5.8.1",
     "prettier": "^2.7.1",
     "ts-node": "^10.9.1",
