@@ -1,6 +1,9 @@
 <script setup>
 import { ref } from 'vue'
-import { getPhoneCode, login } from '@/api/user'
+import { getPhoneCode, login, loginPwd, loginWx } from '@/api/login'
+import { useUserStore } from '@/stores/user'
+import WxloginComponent from '@/components/WxloginComponent.vue'
+import ScanLogin from '@/components/ScanLogin.vue'
 
 const activeName = ref('first')
 
@@ -8,6 +11,7 @@ const formRefPhone = ref()
 const formRefAccount = ref()
 let isCodeSent = ref(false) // 添加一个标志位，表示验证码是否已发送
 let countdown = ref(60) // 倒计时秒数
+const userStore = useUserStore()
 
 const numberValidateForm = ref({
   account: '',
@@ -58,17 +62,65 @@ const sendCode = async () => {
   }
 }
 
-const handleLogin = () => {
-  formRefPhone.value.validate(async (valid) => {
-    if (valid) {
-      const res = await login({ mobile: numberValidateForm.value.phone, code: numberValidateForm.value.code })
-      if (res.code === 200) {
-        ElMessage.success('登录成功')
-        localStorage.setItem('token', res.data.token)
-        localStorage.setItem('userInfo', JSON.stringify(res.data.userInfo))
-      }
+/**
+ * 处理登录逻辑的函数
+ *
+ * 该函数首先会通过表单引用formRefPhone来验证登录表单的数据是否有效
+ * 如果验证通过，则会调用login函数发起登录请求
+ * 登录成功后，会显示成功消息，并将token和用户信息存储到localStorage中
+ */
+const handleCodeLogin = async () => {
+  try {
+    await formRefAccount.value.validateField('phone');
+    await formRefAccount.value.validateField('code');
+    const res = await login({ mobile: numberValidateForm.value.phone, code: numberValidateForm.value.code })
+    console.log('正在登录')
+    if (res.code === 200) {
+      // 显示成功消息
+      ElMessage.success('登录成功')
+      userStore.setToken(res.data.token)
     }
-  })
+  } catch (error) {
+    ElMessage.error('登录失败', error.response.data.data)
+  }
+}
+
+const handleLogin = async () => {
+  try {
+    // ✅ 分别验证 account 和 password
+    await formRefAccount.value.validateField('account');
+    await formRefAccount.value.validateField('password');
+    const res = await loginPwd({ username: numberValidateForm.value.account, password: numberValidateForm.value.password })
+    if (res.code === 200) {
+      // 显示成功消息
+      ElMessage.success('登录成功')
+    }
+  } catch (error) {
+    ElMessage.error('登录失败', error.response.data.data)
+    // 发起登录请求...
+  }
+};
+
+const handleWxLoginSuccess = async (wxCode) => {
+  console.log('微信登录成功，code:', wxCode)
+  // 这里可以处理登录成功后的逻辑
+  // 例如调用你的开放平台登录接口
+  // loginWithWxCode(wxCode).then(() => {
+  //   // 跳转到首页或其他页面
+  // })
+  const res = await loginWx(wxCode)
+  ElMessage.success('登录成功')
+  userStore.setToken(res.data.token)
+  console.log(res)
+}
+
+const handleLoginSuccess = (token) => {
+  console.log('登录成功，token:', token)
+  userStore.setToken(token)
+  // 这里可以处理登录成功后的逻辑
+  // 例如存储token，跳转页面等
+  // localStorage.setItem('auth_token', token)
+  // router.push('/')
 }
 
 </script>
@@ -77,8 +129,7 @@ const handleLogin = () => {
   <div id="centerBox">
     <el-tabs v-model="activeName"
       type="card"
-      class="demo-tabs"
-      @tab-click="handleClick">
+      class="demo-tabs">
       <el-tab-pane label="验证码登录"
         name="first">
         <el-form ref="formRefPhone"
@@ -96,7 +147,7 @@ const handleLogin = () => {
           </el-form-item>
           <el-form-item label="验证码"
             prop="code">
-            <el-input @keydown.enter="handleLogin"
+            <el-input @keydown.enter="handleCodeLogin"
               v-model="numberValidateForm.code"
               placeholder="请输入验证码">
               <template #append>
@@ -108,11 +159,11 @@ const handleLogin = () => {
             </el-input>
           </el-form-item>
           <el-button style="width: 100%;"
-            @click="handleLogin"
+            @click="handleCodeLogin"
             type="success">立即登陆</el-button>
+          <br>
         </el-form>
       </el-tab-pane>
-
 
       <el-tab-pane label="账号登录"
         name="second">
@@ -139,28 +190,23 @@ const handleLogin = () => {
               show-password />
           </el-form-item>
           <el-button style="width: 100%;"
+            @click="handleLogin"
             type="success">立即登陆</el-button>
         </el-form>
       </el-tab-pane>
 
       <el-tab-pane label="扫码登录"
         name="third">
-        <div class="demo-image">
-          <div class="block">
-            <span class="demonstration"></span>
-            <el-image style="width: 300px; height: 300px"
-              src='https://fuss10.elemecdn.com/e/5d/4a731a90594a4af544c0c25941171jpeg.jpeg' />
-          </div>
+        <div class="login-page">
+          <h2>扫码登录</h2>
+          <ScanLogin @QRlogin-success="handleLoginSuccess" />
         </div>
       </el-tab-pane>
       <el-tab-pane label="微信登录"
         name="fourth">
-        <div class="demo-image">
-          <div class="block">
-            <span class="demonstration"></span>
-            <el-image style="width: 300px; height: 300px"
-              src='https://fuss10.elemecdn.com/e/5d/4a731a90594a4af544c0c25941171jpeg.jpeg' />
-          </div>
+        <div class="login-page">
+          <h2>微信登录</h2>
+          <WxloginComponent @login-success="handleWxLoginSuccess" />
         </div>
       </el-tab-pane>
     </el-tabs>
@@ -172,8 +218,7 @@ const handleLogin = () => {
   width: 100%;
   display: flex;
   justify-content: center;
-  margin-top: 200px;
-
+  margin-top: 20vh;
 
   .demo-tabs>.el-tabs__content {
     padding: 32px;
@@ -183,27 +228,6 @@ const handleLogin = () => {
 
     .el-tab-pane {
       text-align: center;
-
-      .demo-image .block {
-        padding: 30px 0;
-        text-align: center;
-        border-right: solid 1px var(--el-border-color);
-        display: inline-block;
-        width: 100%;
-        box-sizing: border-box;
-        vertical-align: top;
-      }
-
-      .demo-image .block:last-child {
-        border-right: none;
-      }
-
-      .demo-image .demonstration {
-        display: block;
-        color: var(--el-text-color-secondary);
-        font-size: 14px;
-        margin-bottom: 20px;
-      }
     }
   }
 }
