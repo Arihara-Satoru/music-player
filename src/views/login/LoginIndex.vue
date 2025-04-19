@@ -2,8 +2,9 @@
 import { ref } from 'vue'
 import { getPhoneCode, login, loginPwd, loginWx } from '@/api/login'
 import { useUserStore } from '@/stores/user'
-import WxloginComponent from '@/components/WxloginComponent.vue'
-import ScanLogin from '@/components/ScanLogin.vue'
+import WxloginComponent from '@/components/login/WxloginComponent.vue'
+import ScanLogin from '@/components/login/ScanLogin.vue'
+import router from '@/router'
 
 const activeName = ref('first')
 
@@ -102,7 +103,7 @@ const handleLogin = async () => {
 };
 
 const handleWxLoginSuccess = async (wxCode) => {
-  console.log('微信登录成功，code:', wxCode)
+  // console.log('微信登录成功，code:', wxCode)
   // 这里可以处理登录成功后的逻辑
   // 例如调用你的开放平台登录接口
   // loginWithWxCode(wxCode).then(() => {
@@ -111,16 +112,21 @@ const handleWxLoginSuccess = async (wxCode) => {
   const res = await loginWx(wxCode)
   ElMessage.success('登录成功')
   userStore.setToken(res.data.token)
-  console.log(res)
+  router.push('/')
+  // console.log(res)
 }
 
-const handleLoginSuccess = (token) => {
-  console.log('登录成功，token:', token)
-  userStore.setToken(token)
+const handleLoginSuccess = (res) => {
+  // console.log('登录成功，token:', token)
+  userStore.setToken(res.data.token)
+  userStore.setUserId(res.data.userid)
+  ElMessage.success('正在跳转中...')
+  setTimeout(() => {
+    router.push('/')
+  }, 1000)
   // 这里可以处理登录成功后的逻辑
   // 例如存储token，跳转页面等
   // localStorage.setItem('auth_token', token)
-  // router.push('/')
 }
 
 </script>
@@ -133,6 +139,7 @@ const handleLoginSuccess = (token) => {
       <el-tab-pane label="验证码登录"
         name="first">
         <el-form ref="formRefPhone"
+          v-if="activeName === 'first'"
           style="max-width: 600px"
           :model="numberValidateForm"
           :rules="rules"
@@ -169,6 +176,7 @@ const handleLoginSuccess = (token) => {
         name="second">
 
         <el-form ref="formRefAccount"
+          v-if="activeName === 'second'"
           style="max-width: 600px"
           :model="numberValidateForm"
           :rules="rules"
@@ -197,14 +205,16 @@ const handleLoginSuccess = (token) => {
 
       <el-tab-pane label="扫码登录"
         name="third">
-        <div class="login-page">
+        <div class="login-page"
+          v-if="activeName === 'third'">
           <h2>扫码登录</h2>
           <ScanLogin @QRlogin-success="handleLoginSuccess" />
         </div>
       </el-tab-pane>
       <el-tab-pane label="微信登录"
         name="fourth">
-        <div class="login-page">
+        <div class="login-page"
+          v-if="activeName === 'fourth'">
           <h2>微信登录</h2>
           <WxloginComponent @login-success="handleWxLoginSuccess" />
         </div>

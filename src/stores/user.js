@@ -2,7 +2,11 @@ import {defineStore} from 'pinia';
 import {ref} from 'vue';
 
 export const useUserStore = defineStore('user', () => {
+  const userId= ref('');
   const token = ref('');
+  const setUserId = (data) => {
+    userId.value = data;
+  };
   const setToken = (data) => {
     token.value = data;
   };
@@ -15,7 +19,11 @@ export const useUserStore = defineStore('user', () => {
     token.value = '';
   };
 
-  return {token, setToken, getToken, removeToken};
+  const removeUserId = () => {
+    userId.value = '';
+  };
+
+  return {token, userId,setUserId, setToken, getToken, removeToken,removeUserId};
 },
 {
   persist: true, // 启用持久化

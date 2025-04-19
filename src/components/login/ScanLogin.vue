@@ -30,7 +30,7 @@
     <div v-else
       class="login-success">
       <p>登录成功！</p>
-      <button @click="handleContinue">继续</button>
+      <!-- <button @click="handleContinue">继续</button> -->
     </div>
 
     <!-- 刷新按钮 -->
@@ -169,7 +169,8 @@ const startCountdown = (seconds) => {
 // 继续操作
 const handleContinue = (res) => {
   loginSuccess.value = true
-  emit('QRlogin-success', res.data.token)
+  console.log(res)
+  emit('QRlogin-success', res)
 }
 
 // 重置状态
