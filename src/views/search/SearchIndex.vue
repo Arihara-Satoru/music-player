@@ -1,5 +1,25 @@
+<script setup>
+import { ref } from 'vue'
+import { searchMusic } from '@/api/user'
+const query = ref('')
+const musicList = ref([])
+const loading = ref(false)
+const handleSearch = async () => {
+  loading.value = true
+  console.log(query.value)
+  const { data } = await searchMusic(query.value)
+  console.log(data)
+  musicList.value = data.lists
+  loading.value = false
+}
+
+// console.log(musicList.value)
+</script>
+
 <template>
-  <div class="search-index">
+  <div class="animation"
+    v-loading="loading"
+    :class="musicList.length ? 'search-indexup' : 'search-index'">
     <header class="search-header">
       <input v-model="query"
         @input="onSearch"
@@ -10,38 +30,21 @@
     </header>
     <section class="search-results"
       v-if="musicList.length">
-      <ul>
-        <li v-for="(result, index) in searchMusic"
-          :key="index"
-          class="result-item">
-          {{ result }}
-        </li>
-      </ul>
+      <song-list :musicList="musicList" />
     </section>
-    <!-- <p v-else
-      class="no-results"
-      v-if="query">No results found.</p> -->
   </div>
+
 </template>
 
-<script setup>
-import { ref } from 'vue'
-import { searchMusic } from '@/api/user'
-const query = ref('')
-const musicList = ref([])
-const handleSearch = async () => {
-  console.log(query.value)
-  const { data } = await searchMusic(query.value)
-  console.log(data)
-  musicList.value = data
+<style scoped>
+template {
+  display: flex;
+  flex-direction: column;
 }
 
-// console.log(musicList)
-</script>
-
-<style scoped>
 .search-index {
-  width: 100%;
+  margin: 0 auto;
+  width: 600px;
   height: 60vh;
   /* 使容器高度占满整个视口 */
   padding: 16px;
@@ -52,8 +55,20 @@ const handleSearch = async () => {
   /* 使子元素垂直排列 */
 }
 
+.search-indexup {
+  width: 100%;
+  height: 100vh;
+  /* 使容器高度占满整个视口 */
+  padding: 16px;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  transition: 0.3s ease-in-out;
+}
+
 .search-header {
-  width: 600px;
+  translate: 1s;
+  width: 100%;
   margin-bottom: 16px;
 }
 
@@ -61,6 +76,7 @@ const handleSearch = async () => {
   width: 100%;
   padding: 8px;
   font-size: 16px;
+  border-radius: 5px;
 }
 
 .search-results {

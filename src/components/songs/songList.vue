@@ -1,23 +1,28 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { computed, ref } from 'vue';
 
-const songs = ref([
-  { title: 'Digital Warfare', artist: 'Neural DSP', duration: '3:45', cover: '' },
-  { title: 'Quantum Loop', artist: 'Waveform', duration: '4:20', cover: '' },
-  { title: 'Silicon Dreams', artist: 'Circuit', duration: '5:12', cover: '' }
-]);
+const props = defineProps({
+  musicList: {
+    type: Array,
+    required: true,
+    default: () => []
+  }
+})
 
-const sortOption = ref('title');
+const sortOption = ref('default');
 
 const sortedSongs = computed(() => {
-  return [...songs.value].sort((a, b) =>
+  // console.log('11111', props.musicList[0].OriSongName)
+  return [...props.musicList].map(item => ({
+    ...item,
+  })).sort((a, b) =>
     a[sortOption.value].localeCompare(b[sortOption.value])
   );
 });
 
 const playRandom = () => {
-  const randomIndex = Math.floor(Math.random() * songs.value.length);
-  console.log('Playing:', songs.value[randomIndex].title);
+  const randomIndex = Math.floor(Math.random() * props.musicList.length);
+  console.log('Playing:', props.musicList[randomIndex].OriSongName);
 };
 </script>
 
@@ -30,9 +35,9 @@ const playRandom = () => {
           size="small"
           class="sort-select">
           <el-option label="标题排序"
-            value="title" />
+            value="OriSongName" />
           <el-option label="歌手排序"
-            value="artist" />
+            value="SingerName" />
         </el-select>
         <el-button @click="playRandom"
           size="small"
@@ -55,43 +60,44 @@ const playRandom = () => {
     </el-row>
 
     <!-- 歌曲列表 -->
-    <div class="song-container">
-      <el-row v-for="(song, index) in sortedSongs"
-        :key="index"
-        class="song-row"
-        :gutter="20"
-        @click="console.log('Playing:', song.title)">
-        <el-col :span="2">
-          <div class="cover-container">
-            <div class="cover-mask"></div>
-            <img src="/default-cover.jpg"
-              class="album-cover" />
-          </div>
-        </el-col>
-        <el-col :span="10"
-          class="song-title-col">
-          <span class="song-title">{{ song.title }}</span>
-          <span class="artist-mobile">{{ song.artist }}</span>
-        </el-col>
-        <el-col :span="8"
-          class="artist-col">
-          {{ song.artist }}
-        </el-col>
-        <el-col :span="4"
-          class="duration-col">
-          {{ song.duration }}
-        </el-col>
-      </el-row>
-    </div>
+
+    <el-row v-for="(song, index) in musicList"
+      :key="index"
+      class="song-row"
+      :gutter="20"
+      @click="console.log('Playing:', song.OriSongName)">
+      <el-col :span="2">
+        <div class="cover-container">
+          <div class="cover-mask"></div>
+          <img :src="song.Image.replace('{size}', '') || '/default-cover.jpg'"
+            class="album-cover" />
+        </div>
+      </el-col>
+      <el-col :span="10"
+        class="song-title-col">
+        <span class="song-title">{{ song.OriSongName }}</span>
+        <span class="artist-mobile">{{ song.SingerName }}</span>
+      </el-col>
+      <el-col :span="8"
+        class="artist-col">
+        {{ song.SingerName }}
+      </el-col>
+      <el-col :span="4"
+        class="duration-col">
+        {{ Math.floor(song.Duration / 60) }}:{{ String(song.Duration %
+          60).padStart(2, '0') }}
+      </el-col>
+    </el-row>
+
   </div>
 </template>
 
 <style scoped lang="scss">
 .song-list {
-  padding: 2rem;
-  background: #f8f9fa;
+  // padding: 2rem;
+  background: #f8f9fa00;
   width: 100%;
-  min-height: 100vh;
+  // min-height: 100vh;
 }
 
 .header {
@@ -132,13 +138,9 @@ const playRandom = () => {
   text-align: right;
 }
 
-.song-container {
-  background: white;
-  border-radius: 0 0 4px 4px;
-}
-
 .song-row {
-  padding: 12px 0;
+  padding: 6px 0;
+  background-color: #2c3e502a;
   border-bottom: 1px solid #e9ecef;
   align-items: center;
   transition: all 0.2s ease;

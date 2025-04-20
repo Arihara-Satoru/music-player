@@ -21,10 +21,10 @@ export const getUserPlayList = (page,pagesize)=>{
   return request.get('/user/playlist',{params: {page, pagesize }});
 }
 //获取歌单详情
-export const getPlayListDetail = (ids)=>{
-  return request.get('/playlist/detail', { params: { ids } });
-}
+// export const getPlayListDetail = (ids)=>{
+//   return request.get('/playlist/detail', { params: { ids } });
+// }
 //获取歌单歌曲
-export const getPlayListSong = (id)=>{
-  return request.get('/playlist/track/all', { params: { id } });
+export const getPlayListSong = (listid)=>{
+  return request.get('/playlist/track/all/new', { params: { listid } });
 }
