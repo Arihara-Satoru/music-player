@@ -24,6 +24,7 @@ const router = createRouter({
         {path:'search',name:'search',component: () => import('@/views/search/SearchIndex.vue')},
         {path:'playlist',name:'playlist',component: () => import('@/views/playlist/PlayList.vue')},
         {path:'setting',name:'setting',component: () => import('@/views/setting/SettingIndex.vue')},
+        {path:'songlist',name:'songlist',component: () => import('@/components/songs/songList.vue')},
       ]
     }
   ],

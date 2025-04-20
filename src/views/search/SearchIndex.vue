@@ -41,11 +41,19 @@ const handleSearch = async () => {
 
 <style scoped>
 .search-index {
-  width: 500px;
+  width: 100%;
+  height: 60vh;
+  /* 使容器高度占满整个视口 */
   padding: 16px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  /* 使子元素垂直排列 */
 }
 
 .search-header {
+  width: 600px;
   margin-bottom: 16px;
 }
 

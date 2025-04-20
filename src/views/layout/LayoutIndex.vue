@@ -32,43 +32,30 @@ const getUserInfo = async () => {
 }
 
 const VipStatus = async () => {
-  const res = await getVipStatus()
-  // const endTimeStr = res.data.busi_vip[0].vip_end_time; // "2025-04-20 18:33:51"
-  // const endTime = new Date(endTimeStr); // 转为 Date 对象
-  // const currentTime = new Date();       // 当前时间
-  // // 获取时间戳（毫秒数）
-  // const endTimestamp = endTime.getTime();
-  // const currentTimestamp = currentTime.getTime();
-  // // console.log('vip', res.data.busi_vip[0].vip_end_time)
-  // // 判断是否过期
-  // if (currentTimestamp > endTimestamp) {
-  //   console.log("VIP 已过期");
-  //   return false;
-  // } else {
-  //   ElMessage.success('VIP 有效')
-  //   console.log("VIP 有效");
-  //   return true;
-  // }
-  // 获取VIP结束时间
-  const vipEndTimeStr = res.data.busi_vip[0].vip_begin_time; // "2025-04-20 18:33:51"
-  const isSameDay = new Date(vipEndTimeStr).toDateString() === new Date().toDateString();
-  // console.log('isSameDay', isSameDay)
-  return isSameDay
+  const res = await getVipStatus();
+  const endTimeStr = res.data.busi_vip[0].vip_end_time; // "2025-04-20 18:33:51"
+
+  // 获取VIP结束日期和当前日期的日期部分（去掉时间）
+  const endDate = new Date(endTimeStr.split(' ')[0]); // 只取日期部分
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // 清零时间部分
+
+  // 比较日期（毫秒数）
+  if (endDate.getTime() <= today.getTime()) {
+    getDayVip(); // 如果需要获取每日VIP
+    ElMessage.success(`VIP 结束时间：${endTimeStr}`);
+  } else {
+    ElMessage.success('VIP有效');
+  }
 }
 
 const getDayVip = async () => {
-  if (VipStatus()) {
-    ElMessage.success('VIP 有效')
-    return
-  }
-  const res = await getVip()
-  console.log('getvip', res)
-  ElMessage.success('领取一天vip成功')
+  await getVip()
 }
 
 onMounted(() => {
   getUserInfo()
-  getDayVip()
+  VipStatus()
 })
 </script>
 
@@ -82,7 +69,12 @@ onMounted(() => {
         <el-header>
           <HeaderIndex></HeaderIndex>
         </el-header>
-        <el-main><router-view></router-view></el-main>
+        <el-main><router-view v-slot="{ Component }">
+            <transition name="fade"
+              mode="out-in">
+              <component :is="Component" />
+            </transition>
+          </router-view></el-main>
       </el-container>
     </el-container>
   </div>
@@ -91,7 +83,7 @@ onMounted(() => {
 <style lang="scss" scoped>
 .main-container {
   display: flex;
-  flex-direction: column;
+  // flex-direction: column;
   height: 97vh;
   overflow: hidden; // 禁用容器自身滚动
 
@@ -111,11 +103,18 @@ onMounted(() => {
     border-radius: 10px;
     background-color: v-bind(primaryColorRGBA);
     display: flex;
-    justify-content: center; // 水平居中
-    align-items: center; // 垂直居中
-
-    router-view {}
   }
+}
+
+/* 必加的4个CSS类 */
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
 }
 
 /* 响应式设计 */
