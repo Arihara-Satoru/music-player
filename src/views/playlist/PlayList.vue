@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { getUserPlayList, getPlayListDetail, getPlayListSong } from '@/api/user';
+import { getUserPlayList } from '@/api/user';
 
 const playlist = ref([]);
 const playlistCount = ref([]);

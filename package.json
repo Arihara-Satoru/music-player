@@ -13,13 +13,20 @@
     "electron:build": "electron-builder --config.extraMetadata.main=electron.js"
   },
   "build": {
-    "files": ["dist/**/*", "electron.js"],
+    "files": [
+      "dist/**/*",
+      "electron.js"
+    ],
     "extraResources": [
-    {
-      "from": "public",
-      "to": "public"
-    }
-  ]
+      {
+        "from": "public",
+        "to": "public"
+      },
+      {
+        "from": "KuGouMusicApi",
+        "to": "KuGouMusicApi"
+      }
+    ]
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",
@@ -32,6 +39,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",
+    "@vitejs/plugin-legacy": "^6.1.0",
     "@vitejs/plugin-vue": "^5.2.3",
     "@vue/eslint-config-prettier": "^10.2.0",
     "electron": "^35.2.0",
