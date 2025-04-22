@@ -9,6 +9,14 @@ const props = defineProps({
   }
 })
 
+const formatSongSinger = (title) => {
+  return title?.replace(/.*- /, '');
+};
+
+const formatSongName = (title) => {
+  return title?.replace(/ - .*/, '');
+};
+
 const sortOption = ref('default');
 
 const sortedSongs = computed(() => {
@@ -69,18 +77,22 @@ const playRandom = () => {
       <el-col :span="2">
         <div class="cover-container">
           <div class="cover-mask"></div>
-          <img :src="song.Image.replace('{size}', '') || '/default-cover.jpg'"
+          <img
+            :src="(song.cover?.replace('{size}', '') || song.Image?.replace('{size}', '') || '/default-cover.jpg')"
             class="album-cover" />
         </div>
       </el-col>
       <el-col :span="10"
         class="song-title-col">
-        <span class="song-title">{{ song.OriSongName }}</span>
-        <span class="artist-mobile">{{ song.SingerName }}</span>
+        <span class="song-title">{{ song.OriSongName ||
+          formatSongSinger(song.name) || '歌曲无版权.........' }}</span>
+        <span class="artist-mobile">{{ song.SingerName ||
+          formatSongName(song.name) }}</span>
       </el-col>
       <el-col :span="8"
         class="artist-col">
-        {{ song.SingerName }}
+        {{ song.SingerName ||
+          formatSongName(song.name) }}
       </el-col>
       <el-col :span="4"
         class="duration-col">
@@ -88,7 +100,6 @@ const playRandom = () => {
           60).padStart(2, '0') }}
       </el-col>
     </el-row>
-
   </div>
 </template>
 

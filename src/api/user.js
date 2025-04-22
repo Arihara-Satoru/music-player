@@ -4,8 +4,8 @@ export const userInfo = ()=>{
   return request.get('/user/detail');
 }
 //搜索歌曲
-export const searchMusic = (keywords)=>{
-  return request.get('/search', { params: { keywords } });
+export const searchMusic = (keywords,page,pagesize)=>{
+  return request.get('/search', { params: { keywords,page, pagesize } });
 }
 
 //领取一天vip
@@ -25,6 +25,6 @@ export const getUserPlayList = (page,pagesize)=>{
 //   return request.get('/playlist/detail', { params: { ids } });
 // }
 //获取歌单歌曲
-export const getPlayListSong = (listid)=>{
-  return request.get('/playlist/track/all/new', { params: { listid } });
+export const getPlayListSong = (id,page, pagesize)=>{
+  return request.get('/playlist/track/all', { params: { id,page, pagesize } });
 }

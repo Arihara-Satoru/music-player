@@ -1,8 +1,8 @@
-import { createRouter, createWebHashHistory } from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '@/stores/user';
 
 const router = createRouter({
-  history: createWebHashHistory(import.meta.env.BASE_URL),
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
@@ -24,8 +24,13 @@ const router = createRouter({
         {path:'search',name:'search',component: () => import('@/views/search/SearchIndex.vue')},
         {path:'playlist',name:'playlist',component: () => import('@/views/playlist/PlayList.vue')},
         {path:'setting',name:'setting',component: () => import('@/views/setting/SettingIndex.vue')},
-        // {path:'songlist',name:'songlist',component: () => import('@/components/songs/songList.vue')},
+        {path:'playlist/:listid',name:'playlistDetail',component: () => import('@/views/playlist/PlayListDetail.vue')},
       ]
+    },
+    {
+      path:'/playindex',
+      name:'playindex',
+      component: () => import('@/views/play/PlayIndex.vue'),
     }
   ],
 })

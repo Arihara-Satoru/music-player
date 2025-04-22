@@ -1,19 +1,19 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, provide, watch } from 'vue';
 import { getUserPlayList } from '@/api/user';
+import router from '@/router';
 
-const playlist = ref([]);
-const playlistCount = ref([]);
-const loading = ref(true);
-
-const pageSize = ref(15); // 每页显示的数量
 const page = ref(1); // 当前页码
+const pageSize = ref(15); // 每页显示的数量
+const playlistCount = ref(0);
+const playlist = ref([]);
+const loading = ref(true);
 
 const getPlayList = async () => {
   try {
     loading.value = true;
     const res = await getUserPlayList(page.value, pageSize.value);
-    console.log('歌曲', res);
+    // console.log('歌曲', res);
     playlistCount.value = res.data.list_count;
 
     // 处理图片URL
@@ -35,17 +35,13 @@ const getPlayList = async () => {
   }
 };
 
-const handlePageChange = (newPage) => {
-  page.value = newPage;
-  getPlayList();
-  console.log('当前页码：', newPage);
-};
-
-const handleCardClick = (song) => {
+const handleCardClick = async (song) => {
   // 处理点击歌单的逻辑
-  console.log('选中歌单:', song);
+  router.push(`/layout/playlist/${song.global_collection_id}`)
 };
-
+watch(page, (newVal, oldVal) => {
+  getPlayList();
+})
 getPlayList();
 </script>
 
@@ -77,13 +73,10 @@ getPlayList();
         </div>
       </div>
     </div>
-    <div class="example-pagination-block">
-      <el-pagination layout="prev, pager, next"
-        :total="57"
-        :page-size="pageSize"
-        :current-page="page"
-        @current-change="handlePageChange" />
-    </div>
+    <PageSize v-model="page"
+      :pageSize="pageSize"
+      :playlistCount="playlistCount">
+    </pageSize>
   </div>
 </template>
 
@@ -226,18 +219,6 @@ getPlayList();
       }
     }
   }
-}
-
-.example-pagination-block {
-  width: 100%;
-  margin: 10px;
-  display: flex;
-  text-align: center;
-  justify-content: center;
-}
-
-.el-pagination {
-  margin-bottom: 16px;
 }
 
 @media (max-width: 768px) {

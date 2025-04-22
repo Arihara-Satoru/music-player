@@ -1,17 +1,27 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { searchMusic } from '@/api/user'
 const query = ref('')
 const musicList = ref([])
 const loading = ref(false)
+
+const page = ref(1); // 当前页码
+const pageSize = ref(20); // 每页显示的数量
+const playlistCount = ref(0);
+
 const handleSearch = async () => {
   loading.value = true
   console.log(query.value)
-  const { data } = await searchMusic(query.value)
+  const { data } = await searchMusic(query.value, page.value, pageSize.value)
   console.log(data)
   musicList.value = data.lists
   loading.value = false
+  playlistCount.value = data.total
 }
+
+watch(page, (newVal, oldVal) => {
+  handleSearch()
+}, { immediate: false }) // immediate 决定是否立即执行
 
 // console.log(musicList.value)
 </script>
@@ -32,8 +42,12 @@ const handleSearch = async () => {
       v-if="musicList.length">
       <song-list :musicList="musicList" />
     </section>
+    <PageSize v-model="page"
+      :pageSize="pageSize"
+      :playlistCount="playlistCount"
+      v-if="musicList.length">
+    </pageSize>
   </div>
-
 </template>
 
 <style scoped>
@@ -91,5 +105,18 @@ template {
 .no-results {
   color: #888;
   margin-top: 16px;
+}
+
+
+.example-pagination-block {
+  width: 100%;
+  margin: 10px;
+  display: flex;
+  text-align: center;
+  justify-content: center;
+}
+
+.el-pagination {
+  margin-bottom: 16px;
 }
 </style>
