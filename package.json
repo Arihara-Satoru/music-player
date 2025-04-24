@@ -30,12 +30,12 @@
         "to": "KuGouMusicApi"
       },
       {
-        "from": "node_modules/http-server",
-        "to": "node_modules/http-server"
+        "from": "KuGouMusicApi/node_modules",
+        "to": "KuGouMusicApi/node_modules"
       }
     ],
     "directories": {
-      "buildResources": "assets"
+      "output": "release"
     },
     "win": {
       "target": "nsis"

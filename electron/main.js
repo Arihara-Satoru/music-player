@@ -38,7 +38,7 @@ app.whenReady().then(() => {
     backendProcess = fork(backendPath, {
       cwd: path.dirname(backendPath),
       execPath: process.execPath,
-  });
+    });
 
     // 启动 Express 静态文件服务器（生产）
     const appServer = express();
