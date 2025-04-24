@@ -14,18 +14,13 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
-    rollupOptions: {
-      input: {
-        main: './index.html' // 确保路径正确
-      }
-    }
   },
   plugins: [
     vue(),
     vueDevTools(),
     legacy({
-      targets: ['ie>=11'],                  // 指定需要兼容的浏览器范围（IE11及以上）
-      additionalLegacyPolyfills: ['regenerator-runtime/runtime'] // 额外添加的 polyfill
+      targets: ['defaults', 'not IE 11'],
+      additionalLegacyPolyfills: ['regenerator-runtime/runtime'],
     }),
     AutoImport({
       resolvers: [ElementPlusResolver()],
@@ -43,7 +38,7 @@ export default defineConfig({
     proxy: {
       '/api': {
         target: 'http://localhost:12345',
-        changeOrigin: true
+        changeOrigin: true,
       }
     }
   }

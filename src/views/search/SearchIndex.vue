@@ -107,7 +107,6 @@ template {
   margin-top: 16px;
 }
 
-
 .example-pagination-block {
   width: 100%;
   margin: 10px;

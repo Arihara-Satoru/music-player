@@ -74,7 +74,9 @@ onMounted(() => {
               mode="out-in">
               <component :is="Component" />
             </transition>
-          </router-view></el-main>
+          </router-view>
+          <miniplayer class="miniplayer"></miniplayer>
+        </el-main>
       </el-container>
     </el-container>
   </div>
@@ -103,6 +105,13 @@ onMounted(() => {
     border-radius: 10px;
     background-color: v-bind(primaryColorRGBA);
     display: flex;
+    justify-content: center;
+
+    .miniplayer {
+      width: 600px;
+      position: absolute;
+      bottom: 50px;
+    }
   }
 }
 

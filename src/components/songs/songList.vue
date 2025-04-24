@@ -1,5 +1,9 @@
 <script setup>
 import { computed, ref } from 'vue';
+import { usePlayStore } from '@/stores/PlaybackHistory';
+import { playSong } from '@/api/PlaySong';
+
+const playStore = usePlayStore();
 
 const props = defineProps({
   musicList: {
@@ -31,6 +35,21 @@ const sortedSongs = computed(() => {
 const playRandom = () => {
   const randomIndex = Math.floor(Math.random() * props.musicList.length);
   console.log('Playing:', props.musicList[randomIndex].OriSongName);
+};
+
+const playsongs = async (song) => {
+  const hash = song?.Hash || song?.FileHash;
+  if (hash) {
+    const res = await playSong(hash);
+    playStore.setPlayHistory(res.backupUrl);
+    console.log('Playing song with hash:', playStore.playHistory[0]);
+
+  } else {
+    const res = await playSong(song.hash);
+    playStore.setPlayHistory(res.backupUrl);
+    console.log('Playing song with hash:', res);
+  }
+  // console.log('Playing:', song?.FileHash || song?.Hash);
 };
 </script>
 
@@ -73,7 +92,7 @@ const playRandom = () => {
       :key="index"
       class="song-row"
       :gutter="20"
-      @click="console.log('Playing:', song.OriSongName)">
+      @click="playsongs(song)">
       <el-col :span="2">
         <div class="cover-container">
           <div class="cover-mask"></div>
