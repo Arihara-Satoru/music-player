@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { usePlayStore } from '@/stores/PlaybackHistory';
-import { playSong } from '@/api/PlaySong';
+import { playSong, searchLyric, getLyric } from '@/api/PlaySong';
 
 const playStore = usePlayStore();
 
@@ -32,24 +32,45 @@ const sortedSongs = computed(() => {
   );
 });
 
-const playRandom = () => {
+const playRandom = async () => {
   const randomIndex = Math.floor(Math.random() * props.musicList.length);
   console.log('Playing:', props.musicList[randomIndex].OriSongName);
 };
 
-const playsongs = async (song) => {
-  const hash = song?.Hash || song?.FileHash;
-  if (hash) {
-    const res = await playSong(hash);
-    playStore.setPlayHistory(res.backupUrl);
-    console.log('Playing song with hash:', playStore.playHistory[0]);
+const playsongs = async (hash) => {
+  const res = await playSong(hash);
+  const { candidates } = await searchLyric(hash);
+  const { content } = await getLyric(candidates[0].id, candidates[0].accesskey);
+  playStore.setPlayHistory(res.fileName, "", res.backupUrl[0], res.trans_param.union_cover.replace('/{size}', ''), decodeLrc(content));
+  console.log('Playing song with hash:', res);
+};
 
-  } else {
-    const res = await playSong(song.hash);
-    playStore.setPlayHistory(res.backupUrl);
-    console.log('Playing song with hash:', res);
+const formatSongDuration = (song) => {
+  let durationMs = 0;
+
+  if ('timelen' in song) {
+    durationMs = Number(song.timelen); // 毫秒
+  } else if ('Duration' in song) {
+    durationMs = Number(song.Duration) * 1000; // 秒转毫秒
   }
-  // console.log('Playing:', song?.FileHash || song?.Hash);
+
+  const totalSeconds = Math.floor(durationMs / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = String(totalSeconds % 60).padStart(2, '0');
+
+  return `${minutes}:${seconds}`;
+};
+//歌词解码
+const decodeLrc = (base64Str) => {
+  try {
+    const decoded = atob(base64Str); // Base64 → 字符串（但可能乱码）
+    const utf8Str = decodeURIComponent(escape(decoded)); // 兼容中文
+    console.log('歌词解码成功:', utf8Str);
+    return utf8Str;
+  } catch (e) {
+    console.error('歌词解码失败:', e);
+    return '';
+  }
 };
 </script>
 
@@ -92,7 +113,7 @@ const playsongs = async (song) => {
       :key="index"
       class="song-row"
       :gutter="20"
-      @click="playsongs(song)">
+      @click="playsongs(song?.hash || song?.FileHash)">
       <el-col :span="2">
         <div class="cover-container">
           <div class="cover-mask"></div>
@@ -115,14 +136,17 @@ const playsongs = async (song) => {
       </el-col>
       <el-col :span="4"
         class="duration-col">
-        {{ Math.floor(song.Duration / 60) }}:{{ String(song.Duration %
-          60).padStart(2, '0') }}
+        <span>{{ formatSongDuration(song) }}</span>
       </el-col>
     </el-row>
   </div>
 </template>
 
 <style scoped lang="scss">
+.disabled-row {
+  cursor: not-allowed;
+}
+
 .song-list {
   // padding: 2rem;
   background: #f8f9fa00;

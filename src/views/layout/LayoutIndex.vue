@@ -32,22 +32,35 @@ const getUserInfo = async () => {
 }
 
 const VipStatus = async () => {
-  const res = await getVipStatus();
-  const endTimeStr = res.data.busi_vip[0].vip_end_time; // "2025-04-20 18:33:51"
+  try {
+    const res = await getVipStatus();
+    const vipInfo = res?.data?.busi_vip?.[0];
+    if (!vipInfo) {
+      ElMessage.error('未获取到VIP信息');
+      return;
+    }
 
-  // 获取VIP结束日期和当前日期的日期部分（去掉时间）
-  const endDate = new Date(endTimeStr.split(' ')[0]); // 只取日期部分
-  const today = new Date();
-  today.setHours(0, 0, 0, 0); // 清零时间部分
+    const endTimeStr = vipInfo.vip_end_time; // "2025-04-20 18:33:51"
 
-  // 比较日期（毫秒数）
-  if (endDate.getTime() <= today.getTime()) {
-    getDayVip(); // 如果需要获取每日VIP
-    ElMessage.success(`VIP 结束时间：${endTimeStr}`);
-  } else {
-    ElMessage.success('VIP有效');
+    // 只取日期部分，标准化
+    const endDateParts = endTimeStr.split(' ')[0].split('-').map(Number); // [2025, 04, 20]
+    const endDate = new Date(endDateParts[0], endDateParts[1] - 1, endDateParts[2]); // 月份要减一
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // 只保留日期
+
+    if (today.getTime() >= endDate.getTime()) {
+      await getDayVip(); // 在VIP结束当天或之后，可以领取
+      ElMessage.success(`已领取vip。结束时间：${endTimeStr}`);
+    } else {
+      ElMessage.success('VIP仍在有效期内');
+    }
+  } catch (error) {
+    console.error('获取VIP状态失败:', error);
+    ElMessage.error('获取VIP状态失败');
   }
-}
+};
+
+
 
 const getDayVip = async () => {
   await getVip()

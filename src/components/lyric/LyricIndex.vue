@@ -4,6 +4,7 @@ import { usePlayStore } from '@/stores/PlaybackHistory'
 
 const playStore = usePlayStore()
 const currentLine = ref(0)
+const lyricContainer = ref(null)
 
 // 解析LRC歌词
 const parsedLyrics = computed(() => {
@@ -36,29 +37,59 @@ watch(() => playStore.currentTime, (currentTime) => {
   for (let i = 0; i < parsedLyrics.value.length; i++) {
     if (parsedLyrics.value[i].time > currentTime) {
       currentLine.value = Math.max(0, i - 1)
+      scrollToCurrentLine()
       return
     }
   }
   currentLine.value = parsedLyrics.value.length - 1
+  scrollToCurrentLine()
 })
+
+// 滚动到当前歌词行
+function scrollToCurrentLine() {
+  if (!lyricContainer.value) return
+
+  const container = lyricContainer.value
+  const activeLine = container.querySelector('.active')
+  if (activeLine) {
+    container.scrollTo({
+      top: activeLine.offsetTop - container.offsetHeight / 2,
+      behavior: 'smooth'
+    })
+  }
+}
 </script>
 
 <template>
-  <div class="current-lyric">
-    {{ parsedLyrics[currentLine]?.text || '' }}
+  <div class="lyric-container"
+    ref="lyricContainer">
+    <div v-for="(line, index) in parsedLyrics"
+      :key="index"
+      :class="['lyric-line', { active: index === currentLine }]">
+      {{ line.text }}
+    </div>
   </div>
 </template>
 
 <style scoped>
-.current-lyric {
-  text-align: center;
-  font-size: 18px;
-  color: #fff;
-  font-weight: bold;
+.lyric-container {
   height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 20px;
+  overflow-y: auto;
+  text-align: center;
+  padding: 20px;
+  scroll-behavior: smooth;
+}
+
+.lyric-line {
+  margin: 15px 0;
+  font-size: 16px;
+  color: #666;
+  transition: all 0.3s ease;
+}
+
+.lyric-line.active {
+  color: #fff;
+  font-size: 18px;
+  font-weight: bold;
 }
 </style>

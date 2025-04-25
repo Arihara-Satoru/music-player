@@ -5,6 +5,7 @@ import {
   Search,
   List,
   Setting,
+  ArrowLeftBold
 } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
@@ -76,8 +77,15 @@ const logout = () => {
     }">
     <div class="sidebar-header">
       <slot name="header">
-
-        <h2 class="app-title">Music Player</h2>
+        <div class="icon-button"
+          @click="$router.back()">
+          <el-icon>
+            <ArrowLeftBold />
+          </el-icon>
+        </div>
+        <h2 class="app-title">
+          Music Player
+        </h2>
       </slot>
     </div>
 
@@ -103,7 +111,7 @@ const logout = () => {
               alt=""></div>
           <div class="user-info">
             <span class="username">{{ userInfo?.data?.nickname || 'Guest'
-            }}</span>
+              }}</span>
             <span class="user-email"></span>
           </div>
         </div>
@@ -160,6 +168,27 @@ const logout = () => {
   padding-bottom: 1.5rem;
   margin-bottom: 1rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+
+  .icon-button {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    border-radius: 50%;
+    background-color: rgba(0, 0, 0, 0.062);
+    transition: all 0.2s ease;
+
+    .el-icon {
+      color: rgb(5, 3, 3);
+      margin: auto;
+    }
+
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.5);
+    }
+  }
 }
 
 .app-title {

@@ -20,10 +20,10 @@ export const getVipStatus = ()=>{
 export const getUserPlayList = (page,pagesize)=>{
   return request.get('/user/playlist',{params: {page, pagesize }});
 }
-//获取歌单详情
-// export const getPlayListDetail = (ids)=>{
-//   return request.get('/playlist/detail', { params: { ids } });
-// }
+//刷新token
+export const refreshToken = (token ,userid)=>{
+  return request.get('/login/token', { params: { token, userid } });
+}
 //获取歌单歌曲
 export const getPlayListSong = (id,page, pagesize)=>{
   return request.get('/playlist/track/all', { params: { id,page, pagesize } });

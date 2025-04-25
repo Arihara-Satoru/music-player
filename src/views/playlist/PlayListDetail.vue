@@ -31,9 +31,6 @@ getPlayListDetail()
 <template>
   <div style="width: 100%;"
     v-loading="loading">
-    <div>
-      <button @click="$router.back()">返回</button>
-    </div>
     <songList :musicList="musicList"></songList>
     <PageSize v-model="page"
       :pageSize="pageSize"
