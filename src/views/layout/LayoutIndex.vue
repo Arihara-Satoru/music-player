@@ -4,6 +4,9 @@ import HeaderIndex from '@/components/layout/HeaderIndex.vue';
 import { provide, computed, onMounted } from 'vue'
 import { userInfo, getVipStatus, getVip } from '@/api/user';
 import { ref } from 'vue'
+import { usePlayStore } from '@/stores/PlaybackHistory';
+
+const playStore = usePlayStore()
 
 const userInfoData = ref(null)
 // Material You 动态配色
@@ -88,7 +91,8 @@ onMounted(() => {
               <component :is="Component" />
             </transition>
           </router-view>
-          <miniplayer class="miniplayer"></miniplayer>
+          <miniplayer class="miniplayer"
+            v-show="playStore.MusicList.length"></miniplayer>
         </el-main>
       </el-container>
     </el-container>

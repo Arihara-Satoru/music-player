@@ -7,9 +7,9 @@ const currentLine = ref(0)
 
 // 解析LRC歌词
 const parsedLyrics = computed(() => {
-  if (!playStore.playHistory[0]?.lrc) return []
+  if (!playStore.MusicList[0]?.lrc) return []
 
-  const lrcText = playStore.playHistory[0].lrc
+  const lrcText = playStore.MusicList[0].lrc
   const lines = lrcText.split('\n')
   const timeRegex = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/
 

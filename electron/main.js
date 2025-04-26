@@ -11,7 +11,7 @@ function createWindow(urlToLoad) {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    autoHideMenuBar: true, // 菜单栏
+    //autoHideMenuBar: true, // 菜单栏
     webPreferences: {
       contextIsolation: false,
       nodeIntegration: true,

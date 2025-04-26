@@ -36,6 +36,7 @@ getPlayListDetail()
       :pageSize="pageSize"
       :playlistCount="playlistCount">
     </pageSize>
+    <div style="height: 110px;width: 100%;"></div>
   </div>
 
 </template>

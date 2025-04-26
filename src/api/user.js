@@ -28,3 +28,7 @@ export const refreshToken = (token ,userid)=>{
 export const getPlayListSong = (id,page, pagesize)=>{
   return request.get('/playlist/track/all', { params: { id,page, pagesize } });
 }
+//判断接口是否健康
+export const checkHealth = ()=>{
+  return request.get('/health');
+}

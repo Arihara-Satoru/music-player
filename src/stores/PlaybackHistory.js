@@ -3,7 +3,7 @@ import { ref } from 'vue';
 
 export const usePlayStore = defineStore('PlayHistory', () => {
   // 播放历史，包含一首歌曲的详细信息
-  const playHistory = ref([
+  const MusicList = ref([
     {
       name: '歌曲名称',
       artist: '歌手',
@@ -17,18 +17,20 @@ export const usePlayStore = defineStore('PlayHistory', () => {
   const currentTime = ref(0);
 
   // 用于更新播放历史
-  const setPlayHistory = (name,  artist,url,cover,  lrc) => {
-    playHistory.value = [
-      { name, artist, url, cover, lrc },
-    ];
+  const setPlayHistory = (name, artist, url, cover, lrc) => {
+    MusicList.value.unshift({ name, artist, url, cover, lrc });
   };
+
+  const clearPlayList = () => {
+    MusicList.value = [];
+  }
 
   // 更新当前播放时间
   const setCurrentTime = (time) => {
     currentTime.value = time;
   };
 
-  return { playHistory, currentTime, setPlayHistory, setCurrentTime };
+  return { MusicList, currentTime, setPlayHistory,clearPlayList, setCurrentTime };
 }, {
   persist: true, // 启用持久化
 });

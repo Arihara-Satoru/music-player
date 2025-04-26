@@ -1,7 +1,7 @@
 <script setup>
 import 'aplayer/dist/APlayer.min.css';
 import APlayer from 'aplayer';
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, onUnmounted } from 'vue';
 import { usePlayStore } from '@/stores/PlaybackHistory';
 
 // 获取 Pinia 中的播放历史
@@ -14,33 +14,42 @@ let ap = null;
 const addMyAudio = () => {
   ap = new APlayer({
     container: document.getElementById("aplayer"),
-    audio: playStore.playHistory // 直接传递播放历史
+    lrcType: 1,
+    audio: playStore.MusicList, // 直接传递播放历史
+    listFolded: true,
+    listMaxHeight: 90,
   });
 };
 
 // 监听播放历史变化并更新播放器
-watch(() => playStore.playHistory, (newValue) => {
-  if (ap) {
-    // 先暂停播放器，避免播放状态冲突
+watch(() => playStore.MusicList, (newValue) => {
+  if (ap && Array.isArray(newValue) && newValue.length > 0) {
     ap.pause();
-
-    // 更新播放列表
-    ap.list.clear(); // 清空当前的播放列表
-    ap.list.add(playStore.playHistory); // 添加新的播放列表
-
-    // 确保播放器准备好后再播放新歌曲
-    ap.play(); // 播放新的歌曲
+    ap.list.clear();
+    ap.list.add(newValue);
+    ap.play();
   }
 }, { deep: true });
 
-onMounted(() => {
-  addMyAudio(); // 页面加载时初始化播放器
 
-  // 监听播放进度变化
+onMounted(() => {
+  addMyAudio();
+  playStore.clearPlayList();
+
   if (ap) {
     ap.on('timeupdate', () => {
-      playStore.setCurrentTime(ap.audio.currentTime);
+      if (ap.audio) {
+        playStore.setCurrentTime(ap.audio.currentTime);
+      }
     });
+  }
+});
+
+
+// 页面销毁时销毁播放器
+onUnmounted(() => {
+  if (ap) {
+    ap.destroy(); // 销毁播放器实例
   }
 });
 </script>

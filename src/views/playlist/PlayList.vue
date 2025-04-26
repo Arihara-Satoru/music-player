@@ -22,7 +22,7 @@ const getPlayList = async () => {
       // 替换 {size} 占位符
       pic: song.pic
         // 指定具体尺寸
-        .replace('{size}', '')
+        .replace('{size}', '240')
 
         // 添加默认图保底处理
         || '/default-cover.jpg'
@@ -77,6 +77,7 @@ getPlayList();
       :pageSize="pageSize"
       :playlistCount="playlistCount">
     </pageSize>
+    <div style="height: 110px;width: 100%;"></div>
   </div>
 </template>
 

@@ -116,8 +116,12 @@ async function consturctServer(moduleDefs) {
   /**
    * docs
    */
-
   app.use('/docs', express.static(path.join(__dirname, 'docs')));
+
+  // Health check endpoint
+  app.get('/health', (_, res) => {
+    res.status(200).json({ status: 'ok' });
+  });
 
   // Cache
   app.use(cache('2 minutes', (_, res) => res.statusCode === 200));

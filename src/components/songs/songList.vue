@@ -1,84 +1,101 @@
 <script setup>
+// 引入 Vue 的响应式 API 和其他依赖
 import { computed, ref } from 'vue';
-import { usePlayStore } from '@/stores/PlaybackHistory';
-import { playSong, searchLyric, getLyric } from '@/api/PlaySong';
+import { usePlayStore } from '@/stores/PlaybackHistory'; // 引入播放历史存储模块
+import { playSong, searchLyric, getLyric } from '@/api/PlaySong'; // 引入播放歌曲、搜索歌词和获取歌词的 API
 
+// 初始化播放历史存储
 const playStore = usePlayStore();
 
+// 定义组件的 props，接收音乐列表数据
 const props = defineProps({
   musicList: {
-    type: Array,
-    required: true,
-    default: () => []
+    type: Array, // 数据类型为数组
+    required: true, // 必填项
+    default: () => [] // 默认值为空数组
   }
-})
-
-const formatSongSinger = (title) => {
-  return title?.replace(/.*- /, '');
-};
-
-const formatSongName = (title) => {
-  return title?.replace(/ - .*/, '');
-};
-
-const sortOption = ref('default');
-
-const sortedSongs = computed(() => {
-  // console.log('11111', props.musicList[0].OriSongName)
-  return [...props.musicList].map(item => ({
-    ...item,
-  })).sort((a, b) =>
-    a[sortOption.value].localeCompare(b[sortOption.value])
-  );
 });
 
+// 格式化歌曲歌手名称（去除标题中的歌手前缀）
+const formatSongSinger = (title) => {
+  return title?.replace(/.*- /, ''); // 使用正则表达式匹配并替换
+};
+
+// 格式化歌曲名称（去除标题中的歌手后缀）
+const formatSongName = (title) => {
+  return title?.replace(/ - .*/, ''); // 使用正则表达式匹配并替换
+};
+
+// 排序选项，默认为 "default"
+const sortOption = ref('default');
+
+// 计算排序后的歌曲列表
+const sortedSongs = computed(() => {
+  return [...props.musicList] // 深拷贝音乐列表
+    .map(item => ({ ...item })) // 展开每个对象以避免直接修改原始数据
+    .sort((a, b) => a[sortOption.value].localeCompare(b[sortOption.value])); // 根据排序选项进行排序
+});
+
+// 随机播放一首歌曲
 const playRandom = async () => {
-  const randomIndex = Math.floor(Math.random() * props.musicList.length);
-  console.log('Playing:', props.musicList[randomIndex].OriSongName);
+  const randomIndex = Math.floor(Math.random() * props.musicList.length); // 随机生成索引
+  console.log('Playing:', props.musicList[randomIndex].OriSongName); // 打印正在播放的歌曲名
 };
 
-const playsongs = async (hash) => {
-  const res = await playSong(hash);
-  const { candidates } = await searchLyric(hash);
-  const { content } = await getLyric(candidates[0].id, candidates[0].accesskey);
-  playStore.setPlayHistory(res.fileName, "", res.backupUrl[0], res.trans_param.union_cover.replace('/{size}', ''), decodeLrc(content));
-  console.log('Playing song with hash:', res);
+// 播放指定歌曲
+const playsongs = async (hash, name, artist) => {
+  const res = await playSong(hash); // 调用 API 播放歌曲
+  const { candidates } = await searchLyric(hash); // 搜索歌词候选
+  const { content } = await getLyric(candidates[0].id, candidates[0].accesskey); // 获取歌词内容
+  playStore.setPlayHistory( // 设置播放历史
+    name,
+    artist,
+    res.backupUrl[0],
+    res.trans_param.union_cover.replace('{size}', '120'), // 替换封面图片尺寸
+    decodeLrc(content) // 解码歌词
+  );
+  console.log('Playing song with hash:', res); // 打印播放结果
 };
 
+// 格式化歌曲时长
 const formatSongDuration = (song) => {
   let durationMs = 0;
 
   if ('timelen' in song) {
-    durationMs = Number(song.timelen); // 毫秒
+    durationMs = Number(song.timelen); // 如果存在 timelen 字段，则直接使用
   } else if ('Duration' in song) {
-    durationMs = Number(song.Duration) * 1000; // 秒转毫秒
+    durationMs = Number(song.Duration) * 1000; // 如果存在 Duration 字段，则将其转换为毫秒
   }
 
-  const totalSeconds = Math.floor(durationMs / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = String(totalSeconds % 60).padStart(2, '0');
+  const totalSeconds = Math.floor(durationMs / 1000); // 将毫秒转换为秒
+  const minutes = Math.floor(totalSeconds / 60); // 计算分钟数
+  const seconds = String(totalSeconds % 60).padStart(2, '0'); // 计算秒数并补零
 
-  return `${minutes}:${seconds}`;
+  return `${minutes}:${seconds}`; // 返回格式化的时长字符串
 };
-//歌词解码
+
+// 解码 Base64 编码的歌词
 const decodeLrc = (base64Str) => {
   try {
-    const decoded = atob(base64Str); // Base64 → 字符串（但可能乱码）
-    const utf8Str = decodeURIComponent(escape(decoded)); // 兼容中文
-    console.log('歌词解码成功:', utf8Str);
-    return utf8Str;
+    const decoded = atob(base64Str); // 将 Base64 字符串解码为普通字符串
+    const utf8Str = decodeURIComponent(escape(decoded)); // 兼容中文字符
+    // console.log('歌词解码成功:', utf8Str); // 打印解码成功的歌词
+    return utf8Str; // 返回解码后的歌词
   } catch (e) {
-    console.error('歌词解码失败:', e);
-    return '';
+    console.error('歌词解码失败:', e); // 打印解码失败的错误信息
+    return ''; // 返回空字符串
   }
 };
 </script>
 
 <template>
+  <!-- 歌曲列表容器 -->
   <div class="song-list">
+    <!-- 列表头部 -->
     <div class="header">
-      <h1 class="title">TRACKS</h1>
+      <h1 class="title">TRACKS</h1> <!-- 标题 -->
       <div class="controls">
+        <!-- 排序下拉框 -->
         <el-select v-model="sortOption"
           size="small"
           class="sort-select">
@@ -87,6 +104,7 @@ const decodeLrc = (base64Str) => {
           <el-option label="歌手排序"
             value="SingerName" />
         </el-select>
+        <!-- 随机播放按钮 -->
         <el-button @click="playRandom"
           size="small"
           class="random-btn">
@@ -98,23 +116,23 @@ const decodeLrc = (base64Str) => {
     <!-- 列表头部 -->
     <el-row class="song-header"
       :gutter="20">
-      <el-col :span="2"></el-col>
+      <el-col :span="2"></el-col> <!-- 空列 -->
       <el-col :span="10"
-        class="header-title">标题</el-col>
+        class="header-title">标题</el-col> <!-- 标题列 -->
       <el-col :span="8"
-        class="header-title">歌手</el-col>
+        class="header-title">歌手</el-col> <!-- 歌手列 -->
       <el-col :span="4"
-        class="header-title duration-header">时长</el-col>
+        class="header-title duration-header">时长</el-col> <!-- 时长列 -->
     </el-row>
 
     <!-- 歌曲列表 -->
-
     <el-row v-for="(song, index) in musicList"
       :key="index"
       class="song-row"
       :gutter="20"
-      @click="playsongs(song?.hash || song?.FileHash)">
+      @click="playsongs(song?.hash || song?.FileHash, song.OriSongName || formatSongSinger(song.name), song.SingerName || formatSongName(song.name))">
       <el-col :span="2">
+        <!-- 封面图片 -->
         <div class="cover-container">
           <div class="cover-mask"></div>
           <img
@@ -124,18 +142,21 @@ const decodeLrc = (base64Str) => {
       </el-col>
       <el-col :span="10"
         class="song-title-col">
+        <!-- 歌曲标题 -->
         <span class="song-title">{{ song.OriSongName ||
           formatSongSinger(song.name) || '歌曲无版权.........' }}</span>
+        <!-- 歌手名称（移动端显示） -->
         <span class="artist-mobile">{{ song.SingerName ||
           formatSongName(song.name) }}</span>
       </el-col>
       <el-col :span="8"
         class="artist-col">
-        {{ song.SingerName ||
-          formatSongName(song.name) }}
+        <!-- 歌手名称 -->
+        {{ song.SingerName || formatSongName(song.name) }}
       </el-col>
       <el-col :span="4"
         class="duration-col">
+        <!-- 歌曲时长 -->
         <span>{{ formatSongDuration(song) }}</span>
       </el-col>
     </el-row>
@@ -143,15 +164,14 @@ const decodeLrc = (base64Str) => {
 </template>
 
 <style scoped lang="scss">
+/* 样式部分 */
 .disabled-row {
   cursor: not-allowed;
 }
 
 .song-list {
-  // padding: 2rem;
   background: #f8f9fa00;
   width: 100%;
-  // min-height: 100vh;
 }
 
 .header {
@@ -173,7 +193,6 @@ const decodeLrc = (base64Str) => {
   gap: 1rem;
 }
 
-/* 列表样式 */
 .song-header {
   padding: 12px 0;
   border-bottom: 1px solid #e9ecef;

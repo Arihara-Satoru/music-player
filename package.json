@@ -32,6 +32,10 @@
       {
         "from": "KuGouMusicApi/node_modules",
         "to": "KuGouMusicApi/node_modules"
+      },
+      {
+        "from": "dist",
+        "to": "dist"
       }
     ],
     "directories": {

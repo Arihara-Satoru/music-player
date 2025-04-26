@@ -11,6 +11,11 @@ const router = createRouter({
       redirect: '/layout'
     },
     {
+      path: '/loading',
+      name: 'loading',
+      component: () => import('@/components/login/LoadingIndex.vue')
+    },
+    {
       path:'/login',
       name:'login',
       component: () => import('@/views/login/LoginIndex.vue'),
@@ -42,6 +47,7 @@ const router = createRouter({
 // 5. 如果存在且目标路由是登录页 → 跳转到首页
 // 6. 其他情况放行
 // 7. 导出 router
+let hasCheckedHealth = false; // 只检查一次
 router.beforeEach((to) => {
   const userStore = useUserStore()
   const token = userStore.token
@@ -49,6 +55,10 @@ router.beforeEach((to) => {
   // 1. 未登录且目标不是登录页 → 跳转到登录
   if (!token && to.name !== 'login') {
     return { name: 'login' }
+  }
+  else if (!hasCheckedHealth && token) {
+    hasCheckedHealth = true
+    return { name: 'loading' }
   }
   // 2. 已登录却访问登录页 → 跳转到首页
   else if (token && to.name === 'login') {
