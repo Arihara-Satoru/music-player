@@ -2,8 +2,11 @@
 // 引入 Vue 的响应式 API 和其他依赖
 import { computed, ref } from 'vue';
 import { usePlayStore } from '@/stores/PlaybackHistory'; // 引入播放历史存储模块
-import { playSong, searchLyric, getLyric } from '@/api/PlaySong'; // 引入播放歌曲、搜索歌词和获取歌词的 API
-
+import { getMusic } from '@/utils/GetMusicList';
+import { getMusicDetail } from '@/api/PlaySong';
+import { ElMessage } from 'element-plus';
+import { useRoute } from 'vue-router'
+const route = useRoute();
 // 初始化播放历史存储
 const playStore = usePlayStore();
 
@@ -38,23 +41,24 @@ const sortedSongs = computed(() => {
 
 // 随机播放一首歌曲
 const playRandom = async () => {
+  console.log(await getMusicDetail("DAB710A38CE0C9DA49CAE446387B61DC"))
   const randomIndex = Math.floor(Math.random() * props.musicList.length); // 随机生成索引
   console.log('Playing:', props.musicList[randomIndex].OriSongName); // 打印正在播放的歌曲名
 };
 
 // 播放指定歌曲
-const playsongs = async (hash, name, artist) => {
-  const res = await playSong(hash); // 调用 API 播放歌曲
-  const { candidates } = await searchLyric(hash); // 搜索歌词候选
-  const { content } = await getLyric(candidates[0].id, candidates[0].accesskey); // 获取歌词内容
-  playStore.setPlayHistory( // 设置播放历史
-    name,
-    artist,
-    res.backupUrl[0],
-    res.trans_param.union_cover.replace('{size}', '120'), // 替换封面图片尺寸
-    decodeLrc(content) // 解码歌词
-  );
-  console.log('Playing song with hash:', res); // 打印播放结果
+const playsongs = async (hash) => {
+  const ids = ref(); // 用于存储当前播放的歌曲的 hash 值
+  ids.value = route.params.listid || ''; // 确保 ids.value 被正确赋值
+  await getMusic(hash, ids.value, props.musicList);
+};
+
+const handleClick = (song) => {
+  if (!song.hash && !song.FileHash) {
+    ElMessage.warning('该歌曲无版权');
+    return;
+  }
+  playsongs(song?.hash || song?.FileHash, song.OriSongName || formatSongSinger(song.name), song.SingerName || formatSongName(song.name));
 };
 
 // 格式化歌曲时长
@@ -72,19 +76,6 @@ const formatSongDuration = (song) => {
   const seconds = String(totalSeconds % 60).padStart(2, '0'); // 计算秒数并补零
 
   return `${minutes}:${seconds}`; // 返回格式化的时长字符串
-};
-
-// 解码 Base64 编码的歌词
-const decodeLrc = (base64Str) => {
-  try {
-    const decoded = atob(base64Str); // 将 Base64 字符串解码为普通字符串
-    const utf8Str = decodeURIComponent(escape(decoded)); // 兼容中文字符
-    // console.log('歌词解码成功:', utf8Str); // 打印解码成功的歌词
-    return utf8Str; // 返回解码后的歌词
-  } catch (e) {
-    console.error('歌词解码失败:', e); // 打印解码失败的错误信息
-    return ''; // 返回空字符串
-  }
 };
 </script>
 
@@ -130,13 +121,14 @@ const decodeLrc = (base64Str) => {
       :key="index"
       class="song-row"
       :gutter="20"
-      @click="playsongs(song?.hash || song?.FileHash, song.OriSongName || formatSongSinger(song.name), song.SingerName || formatSongName(song.name))">
+      :class="{ 'disabled-row': !song.hash && !song.FileHash }"
+      @click="handleClick(song)">
       <el-col :span="2">
         <!-- 封面图片 -->
         <div class="cover-container">
           <div class="cover-mask"></div>
           <img
-            :src="(song.cover?.replace('{size}', '') || song.Image?.replace('{size}', '') || '/default-cover.jpg')"
+            :src="(song.cover?.replace('{size}', '64') || song.Image?.replace('{size}', '64') || '/default-cover.jpg')"
             class="album-cover" />
         </div>
       </el-col>
@@ -167,6 +159,13 @@ const decodeLrc = (base64Str) => {
 /* 样式部分 */
 .disabled-row {
   cursor: not-allowed;
+  opacity: 0.6;
+  /* 可选：降低透明度以表示不可用 */
+}
+
+.disabled-row:hover {
+  background: none;
+  /* 移除悬停效果 */
 }
 
 .song-list {

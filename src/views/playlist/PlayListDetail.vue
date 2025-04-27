@@ -14,7 +14,6 @@ const loading = ref(false)
 const getPlayListDetail = async () => {
   loading.value = true
   id.value = route.params.listid
-  // console.log('ID from URL:', id.value)
   const res = await getPlayListSong(id.value, page.value, pageSize.value)
   playlistCount.value = res.data.count
   musicList.value = res.data.songs

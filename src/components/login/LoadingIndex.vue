@@ -32,7 +32,7 @@ const checkBackend = async () => {
             console.error('刷新token失败:', err)
           })
       }
-      router.replace('/'); // 也可以直接写路径
+      router.replace('/layout'); // 也可以直接写路径
     }
   } catch {
     showRetry.value = true
