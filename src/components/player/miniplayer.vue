@@ -3,7 +3,7 @@ import 'aplayer/dist/APlayer.min.css';
 import APlayer from 'aplayer';
 import { ref, onMounted, watch, onUnmounted } from 'vue';
 import { usePlayStore } from '@/stores/PlaybackHistory';
-
+import { nextTick } from 'vue';
 // 获取 Pinia 中的播放历史
 const playStore = usePlayStore();
 
@@ -19,27 +19,34 @@ const addMyAudio = () => {
     lrcType: 1,
     audio: playStore.MusicList, // 直接传递播放历史
     listFolded: true,
-    listMaxHeight: 30,
+    listMaxHeight: 20,
   });
 };
 
-// ap.on('listswitch', (e) => {
-//   const currentIndex = e.index;
-//   // 获取当前播放歌曲的hash值
-//   const currentSongHash = player.list[currentIndex].hash;
-//   console.log(currentSongHash);
-//   playStore.updateCurrentHash(currentSongHash)
-// });
-
 // 监听播放历史变化并更新播放器
-watch(() => playStore.MusicList, (newValue) => {
-  if (ap && Array.isArray(newValue) && newValue.length > 0) {
-    ap.pause();
-    ap.list.clear();
-    ap.list.add(newValue);
-    ap.play();
+watch(() => playStore.currentHash, async (newHash) => {
+  ElMessage.success('正在切换音乐');
+  ap.list.clear(); // 清空列表
+  ap.list.add(playStore.MusicList); // 加上新的 MusicList
+  if (ap && typeof newHash === 'string') {
+    const index = ap.list.audios.findIndex(audio => audio.hash === newHash);
+    if (index !== -1) {
+      ap.list.switch(index);
+      ap.play();
+      // 等待切换完成后再触发 listswitch
+      await nextTick(() => {
+        // 这里的 listswitch 会在切换完之后触发
+        ap.on('listswitch', (e) => {
+          const currentIndex = e.index;
+          console.log(currentIndex); // 这里应该是正确的当前音乐 index
+        });
+      });
+    } else {
+      console.warn('当前hash在列表中找不到', newHash);
+    }
   }
-}, { deep: true });
+});
+
 
 
 onMounted(() => {

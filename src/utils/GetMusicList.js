@@ -3,8 +3,10 @@ const playstore = usePlayStore();
 
 export const getMusic = async (hash, ids, MusicListObj) => {
   if (ids !== undefined) {
-    playstore.deleteHash(); // 清空原来的 hash 列表
-
+    if(ids !== playstore.musicIds) {
+      playstore.clearPlayList(); // 清空播放列表
+      playstore.setMusicIds(ids); // 设置新的音乐 ID
+    }
     // 确保传入的 MusicListObj 是有效的对象
     if (MusicListObj && typeof MusicListObj === 'object') {
       Object.keys(MusicListObj).forEach(key => {

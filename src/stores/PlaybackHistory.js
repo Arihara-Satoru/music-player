@@ -3,7 +3,6 @@ import { ref,watch,computed } from 'vue';
 import {getMusicDetail,searchLyric,getLyric,playSong} from "@/api/PlaySong";
 
 export const usePlayStore = defineStore('PlayHistory', () => {
-  const hashList = ref([]); // 用于存储当前播放的歌曲的 hash 值
   // 播放历史，包含一首歌曲的详细信息
   const MusicList = ref([
     {
@@ -18,11 +17,17 @@ export const usePlayStore = defineStore('PlayHistory', () => {
     },
   ]);
 
+  const musicIds = ref(0);
+
   //当前播放的歌曲的hash值
   const currentHash = ref();
 
   // 当前播放时间
   const currentTime = ref(0);
+
+  const setMusicIds = (ids) => {
+    musicIds.value = ids;
+  }
   // 用于更新播放历史
   const setMusicList = async () => {
     try {
@@ -34,47 +39,11 @@ export const usePlayStore = defineStore('PlayHistory', () => {
   };
 
   //更改当前播放的音乐hash
-  const updateCurrentHash = (newHash) => {
-    currentHash.value = newHash;
-  };
-
-  const setHashList = (hash,name,artist,cover) => {
-    const index = hashList.value.indexOf(hash);
-    if (index === -1) {
-      hashList.value.push(hash); // 将新的 hash 添加到列表的开头
-      MusicList.value.push({
-        hash: hash,
-        name: name,
-        artist: artist,
-        url: '',
-        cover: cover,
-        lrc: '',
-      });
-    }
-  }
-  //删除hashList中的全部hash
-  const deleteHash = () => {
-    hashList.value = [];
-    MusicList.value = [];
-  }
-
-  const clearPlayList = () => {
-    MusicList.value = [];
-  }
-
-  // 更新当前播放时间
-  const setCurrentTime = (time) => {
-    currentTime.value = time;
-  };
-
-  watch(currentHash, async (newHash) => {
-    if (!newHash) return; // 防止是空的
+  const updateCurrentHash = async (newHash) => {
     try {
       const res = await playSong(newHash);
       const { candidates } = await searchLyric(newHash); // 搜索歌词候选
       const { decodeContent } = await getLyric(candidates[0].id, candidates[0].accesskey); // 获取歌词内容
-      const index = hashList.value.indexOf(newHash);
-      console.log(`当前是列表的第${ index+1 }首`, index);
       MusicList.value = MusicList.value.map((item) => {
         if (item.hash === newHash) {
           return {
@@ -88,14 +57,41 @@ export const usePlayStore = defineStore('PlayHistory', () => {
     } catch (error) {
       console.error('获取音乐详情失败', error);
     }
-  });
+    currentHash.value = newHash;
+  };
 
+  const setHashList = (hash,name,artist,cover) => {
+    const index = MusicList.value.findIndex(item => item.hash === hash);
+    if (index === -1) {
+      MusicList.value.push({
+        hash: hash,
+        name: name,
+        artist: artist,
+        url: '',
+        cover: cover,
+        lrc: '',
+      });
+    }
+  }
+  const deleteHash = () => {
+    MusicList.value = [];
+  }
+
+  const clearPlayList = () => {
+    MusicList.value = [];
+  }
+
+  // 更新当前播放时间
+  const setCurrentTime = (time) => {
+    currentTime.value = time;
+  };
 
   return {
     MusicList,
     currentHash,
-    hashList,
     currentTime,
+    musicIds,
+    setMusicIds,
     setMusicList,
     updateCurrentHash,
     deleteHash,

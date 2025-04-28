@@ -91,8 +91,9 @@ onMounted(() => {
               <component :is="Component" />
             </transition>
           </router-view>
-          <miniplayer class="miniplayer"
-            v-show="playStore.MusicList.length"></miniplayer>
+          <!-- <miniplayer class="miniplayer"
+            v-show="playStore.MusicList.length"></miniplayer> -->
+          <playerIndex class="miniplayer"></playerindex>
         </el-main>
       </el-container>
     </el-container>
@@ -125,7 +126,7 @@ onMounted(() => {
     justify-content: center;
 
     .miniplayer {
-      width: 600px;
+      width: 800px;
       position: absolute;
       bottom: 50px;
     }
