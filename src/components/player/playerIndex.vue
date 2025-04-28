@@ -347,7 +347,7 @@ watch(() => playStore.currentHash, (newHash) => {
 
 .playlist-container {
   max-height: 300px;
-  overflow: hidden;
+  overflow: auto;
   transition: max-height 0.3s ease;
   background: white;
   border-radius: 4px;
