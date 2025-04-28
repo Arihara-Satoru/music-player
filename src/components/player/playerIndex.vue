@@ -40,6 +40,9 @@ onMounted(() => {
   audioPlayer.value.addEventListener('timeupdate', () => {
     currentTime.value = audioPlayer.value.currentTime
     duration.value = audioPlayer.value.duration || 0
+    if (isPlaying.value) {
+      playStore.setCurrentTime(currentTime.value)
+    }
   })
 
   audioPlayer.value.addEventListener('ended', () => {
@@ -208,15 +211,17 @@ watch(() => playStore.currentHash, (newHash) => {
       </div>
     </div>
 
-    <div class="playlist-container"
-      v-if="showPlaylist">
-      <div v-for="(song, index) in playStore.MusicList"
-        :key="index"
-        class="playlist-item"
-        @click="playSong(index)">
-        {{ song.name }} - {{ song.artist }}
+    <transition name="playlist">
+      <div class="playlist-container"
+        v-show="showPlaylist">
+        <div v-for="(song, index) in playStore.MusicList"
+          :key="index"
+          class="playlist-item"
+          @click="playSong(index)">
+          {{ song.name }} - {{ song.artist }}
+        </div>
       </div>
-    </div>
+    </transition>
   </div>
 </template>
 
@@ -348,9 +353,28 @@ watch(() => playStore.currentHash, (newHash) => {
 .playlist-container {
   max-height: 300px;
   overflow: auto;
-  transition: max-height 0.3s ease;
   background: white;
   border-radius: 4px;
+}
+
+/* 动画过程 */
+.playlist-enter-active,
+.playlist-leave-active {
+  transition: max-height 0.3s ease;
+}
+
+/* 开始进入 和 离开结束时：收起状态 */
+.playlist-enter-from,
+.playlist-leave-to {
+  max-height: 0;
+  overflow: hidden;
+}
+
+/* 进入结束 和 离开开始时：展开状态 */
+.playlist-enter-to,
+.playlist-leave-from {
+  max-height: 300px;
+  overflow: hidden;
 }
 
 .playlist-item {

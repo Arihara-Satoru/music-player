@@ -91,8 +91,6 @@ onMounted(() => {
               <component :is="Component" />
             </transition>
           </router-view>
-          <!-- <miniplayer class="miniplayer"
-            v-show="playStore.MusicList.length"></miniplayer> -->
           <playerIndex class="miniplayer"></playerindex>
         </el-main>
       </el-container>

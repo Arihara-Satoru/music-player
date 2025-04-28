@@ -47,10 +47,11 @@ const playRandom = async () => {
 };
 
 // 播放指定歌曲
-const playsongs = async (hash) => {
+const playsongs = async (hash, name, singer, cover) => {
+  const info = [name, singer, cover]
   const ids = ref(); // 用于存储当前播放的歌曲的 hash 值
   ids.value = route.params.listid || ''; // 确保 ids.value 被正确赋值
-  await getMusic(hash, ids.value, props.musicList);
+  await getMusic(hash, ids.value, props.musicList, info);
 };
 
 const handleClick = (song) => {
@@ -58,7 +59,7 @@ const handleClick = (song) => {
     ElMessage.warning('该歌曲无版权');
     return;
   }
-  playsongs(song?.hash || song?.FileHash, song.OriSongName || formatSongSinger(song.name), song.SingerName || formatSongName(song.name));
+  playsongs(song?.hash || song?.FileHash, song.OriSongName || formatSongSinger(song.name), song.SingerName || formatSongName(song.name), song.Image);
 };
 
 // 格式化歌曲时长

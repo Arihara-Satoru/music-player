@@ -1,8 +1,8 @@
 import { usePlayStore } from "@/stores/PlaybackHistory";
 const playstore = usePlayStore();
 
-export const getMusic = async (hash, ids, MusicListObj) => {
-  if (ids !== undefined) {
+export const getMusic = async (hash, ids, MusicListObj, info) => {
+  if (ids !== '') {
     if(ids !== playstore.musicIds) {
       playstore.clearPlayList(); // 清空播放列表
       playstore.setMusicIds(ids); // 设置新的音乐 ID
@@ -24,7 +24,7 @@ export const getMusic = async (hash, ids, MusicListObj) => {
       console.error("传入的 MusicListObj 结构不正确", MusicListObj);
     }
   } else {
-    playstore.setHashList(hash);
+    playstore.setHashList(hash, info[0], info[1], info[2].replace('{size}', '64')); // 设置当前播放的音乐信息
   }
 
   playstore.updateCurrentHash(hash); // 切换播放
