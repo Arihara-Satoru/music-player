@@ -1,6 +1,12 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { usePlayStore } from '@/stores/PlaybackHistory'
+import { getPlayListSong } from '@/api/user'
+import { getMusic } from '@/utils/GetMusicList'
+import { useRoute } from 'vue-router';
+import { ElMessage } from 'element-plus';
+
+const route = useRoute();
 
 const playStore = usePlayStore()
 const audioPlayer = ref(null)
@@ -142,6 +148,22 @@ const playPrev = () => {
   }
 }
 
+const isCurrentSong = (song) => {
+  return song.hash === playStore.currentHash;
+}
+
+const getMoreList = async () => {
+  // 获取更多列表逻辑
+  const res = await getPlayListSong(playStore.musicIds, Number(playStore.page) + 1, 20)
+  if (res.data.songs.length < 20) {
+    ElMessage('已无更多歌曲')
+    return
+  }
+  playStore.setPage(Number(playStore.page) + 1)
+  await getMusic('', playStore.musicIds, res.data.songs, '', Number(playStore.page) + 1);
+
+}
+
 // 监听播放列表变化
 watch(() => playStore.currentHash, (newHash) => {
   if (newHash) {
@@ -216,10 +238,12 @@ watch(() => playStore.currentHash, (newHash) => {
         v-show="showPlaylist">
         <div v-for="(song, index) in playStore.MusicList"
           :key="index"
-          class="playlist-item"
+          :class="['playlist-item', { 'active-song': isCurrentSong(song) }]"
           @click="playSong(index)">
           {{ song.name }} - {{ song.artist }}
         </div>
+        <p class="get-more"
+          @click="getMoreList()">加载更多。。。</p>
       </div>
     </transition>
   </div>
@@ -384,7 +408,16 @@ watch(() => playStore.currentHash, (newHash) => {
   transition: background-color 0.2s;
 }
 
+.active-song {
+  background-color: #797979;
+}
+
 .playlist-item:hover {
   background: #e9e9e9;
+}
+
+.get-more {
+  width: 100%;
+  text-align: center;
 }
 </style>

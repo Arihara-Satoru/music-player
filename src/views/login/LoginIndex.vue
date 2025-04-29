@@ -120,6 +120,7 @@ const handleLoginSuccess = (res) => {
   // console.log('登录成功，token:', token)
   userStore.setToken(res.data.token)
   userStore.setUserId(res.data.userid)
+  userStore.setUserPicUrl(res.data.pic)
   ElMessage.success('正在跳转中...')
   setTimeout(() => {
     router.push('/')

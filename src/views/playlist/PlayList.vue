@@ -37,7 +37,10 @@ const getPlayList = async () => {
 
 const handleCardClick = async (song) => {
   // 处理点击歌单的逻辑
-  router.push(`/layout/playlist/${song.global_collection_id}`)
+  router.push({
+    path: `/layout/playlist/${song.global_collection_id}`,
+    query: { page: 1 } // 正确的查询参数传递方式
+  })
 };
 watch(page, (newVal, oldVal) => {
   getPlayList();

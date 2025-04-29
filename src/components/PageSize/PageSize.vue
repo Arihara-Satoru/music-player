@@ -1,5 +1,9 @@
 <script setup>
 import { ref } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
+
+const router = useRouter();
+
 const emit = defineEmits(['update:modelValue']);
 const props = defineProps({
   playlistCount: {
@@ -21,6 +25,7 @@ const currentpage = ref(props.page);
 const handlePageChange = (newPage) => {
   emit('update:modelValue', newPage);
   currentpage.value = newPage;
+  router.push({ query: { page: currentpage.value } });
   console.log('当前页码：', newPage);
 };
 </script>

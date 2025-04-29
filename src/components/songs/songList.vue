@@ -49,9 +49,10 @@ const playRandom = async () => {
 // 播放指定歌曲
 const playsongs = async (hash, name, singer, cover) => {
   const info = [name, singer, cover]
+  const page = route.query.page
   const ids = ref(); // 用于存储当前播放的歌曲的 hash 值
   ids.value = route.params.listid || ''; // 确保 ids.value 被正确赋值
-  await getMusic(hash, ids.value, props.musicList, info);
+  await getMusic(hash, ids.value, props.musicList, info, page);
 };
 
 const handleClick = (song) => {

@@ -2,7 +2,9 @@
 import { ref, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { getPlayListSong } from '@/api/user'
+import { usePlayStore } from '@/stores/PlaybackHistory'
 
+const playStore = usePlayStore()
 const route = useRoute()
 const id = ref(null)
 

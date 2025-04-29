@@ -10,6 +10,8 @@ import {
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 
+
+const userStore = useUserStore()
 // 默认导航项
 const navItems = ([
   { text: '首页', icon: HomeFilled, path: 'home' },
@@ -53,17 +55,13 @@ const logout = () => {
       type: 'warning',
     }
   ).then(() => {
-    const userStore = useUserStore()
     userStore.removeUserId()
     userStore.removeToken()
+    userStore.removeUserId()
     router.push('/login')
   }).catch(() => {
     // 用户取消操作
   })
-  // const userStore = useUserStore()
-  // userStore.removeUserId()
-  // userStore.removeToken()
-  // router.push('/login')
 }
 </script>
 
@@ -107,7 +105,7 @@ const logout = () => {
         <div class="user-profile"
           @contextmenu.prevent="logout">
           <div><img class="avatar"
-              :src="userInfo?.data?.pic"
+              :src="userStore.userPicUrl || userInfo?.data?.pic"
               alt=""></div>
           <div class="user-info">
             <span class="username">{{ userInfo?.data?.nickname || 'Guest'

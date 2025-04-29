@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref,watch,computed } from 'vue';
+import { ref} from 'vue';
 import {getMusicDetail,searchLyric,getLyric,playSong} from "@/api/PlaySong";
 
 export const usePlayStore = defineStore('PlayHistory', () => {
@@ -18,6 +18,7 @@ export const usePlayStore = defineStore('PlayHistory', () => {
   ]);
 
   const musicIds = ref(0);
+  const page = ref(1); // 当前播放的歌曲的索引
 
   //当前播放的歌曲的hash值
   const currentHash = ref();
@@ -28,6 +29,10 @@ export const usePlayStore = defineStore('PlayHistory', () => {
   const setMusicIds = (ids) => {
     musicIds.value = ids;
   }
+
+  const setPage = (p) => {
+    page.value = p;
+  };
   // 用于更新播放历史
   const setMusicList = async () => {
     try {
@@ -91,6 +96,8 @@ export const usePlayStore = defineStore('PlayHistory', () => {
     currentHash,
     currentTime,
     musicIds,
+    page,
+    setPage,
     setMusicIds,
     setMusicList,
     updateCurrentHash,
