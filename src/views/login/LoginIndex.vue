@@ -4,7 +4,8 @@ import { getPhoneCode, login, loginPwd, loginWx } from '@/api/login'
 import { useUserStore } from '@/stores/user'
 import WxloginComponent from '@/components/login/WxloginComponent.vue'
 import ScanLogin from '@/components/login/ScanLogin.vue'
-import router from '@/router'
+import { useRouter } from 'vue-router';
+const router = useRouter();
 
 const activeName = ref('first')
 
@@ -63,6 +64,17 @@ const sendCode = async () => {
   }
 }
 
+const setUserInfo = (res) => {
+  userStore.setToken(res.data.token)
+  userStore.setUserId(res.data.userid)
+  userStore.setUserPicUrl(res.data.pic)
+  userStore.setUserName(res.data.nickname)
+  ElMessage.success('正在跳转中...')
+  setTimeout(() => {
+    router.push('/')
+  }, 1000)
+}
+
 /**
  * 处理登录逻辑的函数
  *
@@ -72,17 +84,18 @@ const sendCode = async () => {
  */
 const handleCodeLogin = async () => {
   try {
-    await formRefAccount.value.validateField('phone');
-    await formRefAccount.value.validateField('code');
+    // await formRefAccount.value.validateField('phone');
+    // await formRefAccount.value.validateField('code');
+    console.log('正在验证')
     const res = await login({ mobile: numberValidateForm.value.phone, code: numberValidateForm.value.code })
     console.log('正在登录')
-    if (res.code === 200) {
+    if (res.status === 1) {
       // 显示成功消息
       ElMessage.success('登录成功')
-      userStore.setToken(res.data.token)
+      setUserInfo(res)
     }
   } catch (error) {
-    ElMessage.error('登录失败', error.response.data.data)
+    ElMessage.error('登录失败', error.response)
   }
 }
 
@@ -92,9 +105,10 @@ const handleLogin = async () => {
     await formRefAccount.value.validateField('account');
     await formRefAccount.value.validateField('password');
     const res = await loginPwd({ username: numberValidateForm.value.account, password: numberValidateForm.value.password })
-    if (res.code === 200) {
+    if (res.status === 1) {
       // 显示成功消息
       ElMessage.success('登录成功')
+      setUserInfo(res)
     }
   } catch (error) {
     ElMessage.error('登录失败', error.response.data.data)
@@ -111,20 +125,13 @@ const handleWxLoginSuccess = async (wxCode) => {
   // })
   const res = await loginWx(wxCode)
   ElMessage.success('登录成功')
-  userStore.setToken(res.data.token)
-  router.push('/')
+  setUserInfo(res)
   // console.log(res)
 }
 
 const handleLoginSuccess = (res) => {
   // console.log('登录成功，token:', token)
-  userStore.setToken(res.data.token)
-  userStore.setUserId(res.data.userid)
-  userStore.setUserPicUrl(res.data.pic)
-  ElMessage.success('正在跳转中...')
-  setTimeout(() => {
-    router.push('/')
-  }, 1000)
+  setUserInfo(res)
   // 这里可以处理登录成功后的逻辑
   // 例如存储token，跳转页面等
   // localStorage.setItem('auth_token', token)

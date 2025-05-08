@@ -58,6 +58,7 @@ const logout = () => {
     userStore.removeUserId()
     userStore.removeToken()
     userStore.removeUserId()
+    userStore.removeUserName()
     router.push('/login')
   }).catch(() => {
     // 用户取消操作
@@ -108,7 +109,7 @@ const logout = () => {
               :src="userStore.userPicUrl || userInfo?.data?.pic"
               alt=""></div>
           <div class="user-info">
-            <span class="username">{{ userInfo?.data?.nickname || 'Guest'
+            <span class="username">{{ userStore.userName || 'Guest'
               }}</span>
             <span class="user-email"></span>
           </div>

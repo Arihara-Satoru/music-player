@@ -5,6 +5,7 @@ export const useUserStore = defineStore('user', () => {
   const userId= ref('');
   const token = ref('');
   const userPicUrl = ref('');
+  const userName = ref('');
   const setUserId = (data) => {
     userId.value = data;
   };
@@ -12,12 +13,12 @@ export const useUserStore = defineStore('user', () => {
     token.value = data;
   };
 
-  const setUserPicUrl = (url) => {
-    userPicUrl.value = url;
+  const setUserName = (data) => {
+    userName.value = data;
   };
 
-  const getToken = () => {
-    return token.value;
+  const setUserPicUrl = (url) => {
+    userPicUrl.value = url;
   };
 
   const removeToken = () => {
@@ -28,20 +29,28 @@ export const useUserStore = defineStore('user', () => {
     userId.value = '';
   };
 
+  const removeUserName = () => {
+    userName.value = '';
+  };
+
   const removeUserPicUrl = () => {
     userPicUrl.value = '';
   };
 
-  return {token,
+  return {
+    token,
     userId,
     userPicUrl,
+    userName,
     setUserPicUrl,
     setUserId,
     setToken,
-    getToken,
+    setUserName,
     removeToken,
     removeUserPicUrl,
-    removeUserId};
+    removeUserId,
+    removeUserName,
+  };
 },
 {
   persist: true, // 启用持久化
