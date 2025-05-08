@@ -5,12 +5,14 @@ import { usePlayStore } from '@/stores/PlaybackHistory'
 const playStore = usePlayStore()
 const currentLine = ref(0)
 
-// 解析LRC歌词
-const parsedLyrics = computed(() => {
-  if (!playStore.MusicList[0]?.lrc) return []
+const currentSong = computed(() => {
+  return playStore.MusicList.find(song => song.hash === playStore.currentHash) || {}
+})
 
-  const lrcText = playStore.MusicList[0].lrc
-  const lines = lrcText.split('\n')
+const parsedLyrics = computed(() => {
+  if (!currentSong.value?.lrc) return []
+
+  const lines = currentSong.value.lrc.split('\n')
   const timeRegex = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/
 
   return lines.map(line => {
@@ -23,16 +25,13 @@ const parsedLyrics = computed(() => {
     const time = minutes * 60 + seconds + milliseconds / 1000
 
     const text = line.replace(timeRegex, '').trim()
-
     return { time, text }
   }).filter(item => item !== null && item.text !== '')
 })
 
-// 监听播放进度变化
 watch(() => playStore.currentTime, (currentTime) => {
   if (!parsedLyrics.value.length) return
 
-  // 找到当前应该显示的歌词行
   for (let i = 0; i < parsedLyrics.value.length; i++) {
     if (parsedLyrics.value[i].time > currentTime) {
       currentLine.value = Math.max(0, i - 1)
@@ -40,6 +39,10 @@ watch(() => playStore.currentTime, (currentTime) => {
     }
   }
   currentLine.value = parsedLyrics.value.length - 1
+})
+
+watch(() => playStore.currentHash, () => {
+  currentLine.value = 0
 })
 </script>
 

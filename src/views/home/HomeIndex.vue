@@ -1,9 +1,95 @@
 <template>
-  <div>111111111111</div>
+  <div class="recommend-container">
+    <div class="recommend-card"
+      @click="fetchDailyRecommend">
+      <h3>每日推荐</h3>
+      <p>发现每日为你精选的音乐</p>
+    </div>
+
+    <div class="recommend-card"
+      @click="fetchAIRecommend">
+      <h3>AI推荐</h3>
+      <p>基于你的喜好智能推荐</p>
+    </div>
+  </div>
 </template>
 
 <script setup>
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
+
+const fetchDailyRecommend = async () => {
+  try {
+    // 调用每日推荐接口
+    const response = await fetch('/everyday/recommend')
+    const data = await response.json()
+    // 处理返回的数据，这里假设会跳转到播放页面
+    router.push({
+      name: 'playlist',
+      query: {
+        id: data.id,
+        type: 'daily'
+      }
+    })
+  } catch (error) {
+    console.error('获取每日推荐失败:', error)
+  }
+}
+
+const fetchAIRecommend = async () => {
+  try {
+    // 获取当前播放历史或喜欢的音乐ID
+    const audioIds = '1,2,3' // 这里应该是动态获取的album_audio_id
+    // 调用AI推荐接口
+    const response = await fetch(`/ai/recommend?album_audio_id=${audioIds}`)
+    const data = await response.json()
+    // 处理返回的数据
+    router.push({
+      name: 'playlist',
+      query: {
+        id: data.id,
+        type: 'ai'
+      }
+    })
+  } catch (error) {
+    console.error('获取AI推荐失败:', error)
+  }
+}
 </script>
 
-<style></style>
+<style scoped>
+.recommend-container {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  height: 100px;
+}
+
+.recommend-card {
+  flex: 1;
+  padding: 20px;
+  border-radius: 8px;
+  background: #81a7ad;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.recommend-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.recommend-card h3 {
+  margin: 0 0 10px 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.recommend-card p {
+  margin: 0;
+  font-size: 14px;
+  color: #666;
+}
+</style>
