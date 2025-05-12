@@ -1,38 +1,17 @@
-<template>
-  <div class="recommend-container">
-    <div class="recommend-card"
-      @click="fetchDailyRecommend">
-      <h3>每日推荐</h3>
-      <p>发现每日为你精选的音乐</p>
-    </div>
-
-    <div class="recommend-card"
-      @click="fetchAIRecommend">
-      <h3>AI推荐</h3>
-      <p>基于你的喜好智能推荐</p>
-    </div>
-  </div>
-</template>
-
 <script setup>
-import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { getRecommandMusic } from '@/api/RecommandMusic'
+import { ref } from 'vue'
 
 const router = useRouter()
-
-const fetchDailyRecommend = async () => {
+const songs = ref([])
+const recommandMusic = async () => {
   try {
     // 调用每日推荐接口
-    const response = await fetch('/everyday/recommend')
-    const data = await response.json()
-    // 处理返回的数据，这里假设会跳转到播放页面
-    router.push({
-      name: 'playlist',
-      query: {
-        id: data.id,
-        type: 'daily'
-      }
-    })
+    const response = await getRecommandMusic()
+    console.log('每日推荐数据:', response)
+    songs.value = response.data.song_list
+    console.log('歌曲列表:', songs.value)
   } catch (error) {
     console.error('获取每日推荐失败:', error)
   }
@@ -59,7 +38,33 @@ const fetchAIRecommend = async () => {
 }
 </script>
 
+<template>
+  <section class="search-results"
+    v-if="songs.length">
+    <song-list :musicList="songs" />
+  </section>
+  <div class="recommend-container"
+    v-else>
+    <div class="recommend-card"
+      @click="recommandMusic()">
+      <h3>每日推荐</h3>
+      <p>发现每日为你精选的音乐</p>
+    </div>
+
+    <div class="recommend-card"
+      @click="fetchAIRecommend">
+      <h3>AI推荐</h3>
+      <p>基于你的喜好智能推荐</p>
+    </div>
+  </div>
+</template>
+
 <style scoped>
+.search-results {
+  display: flex;
+  width: 100%;
+}
+
 .recommend-container {
   display: flex;
   gap: 20px;

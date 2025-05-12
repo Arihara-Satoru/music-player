@@ -18,6 +18,8 @@
   "build": {
     "appId": "com.kugou.musicplayer",
     "productName": "KuGouMusic",
+    "compression": "maximum",
+    "asar": true,
     "files": [
       "dist/**/*",
       "electron/main.js",

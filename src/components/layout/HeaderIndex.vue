@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { usePlayStore } from '@/stores/PlaybackHistory'
+import { throttle } from '@/utils/throttle'  // 👈 引入节流函数
 
 const playStore = usePlayStore()
 const currentLine = ref(0)
@@ -29,16 +30,36 @@ const parsedLyrics = computed(() => {
   }).filter(item => item !== null && item.text !== '')
 })
 
-watch(() => playStore.currentTime, (currentTime) => {
-  if (!parsedLyrics.value.length) return
+// 二分查找歌词行
+function findCurrentLyricIndex(time, lyrics) {
+  let low = 0
+  let high = lyrics.length - 1
+  let index = 0
 
-  for (let i = 0; i < parsedLyrics.value.length; i++) {
-    if (parsedLyrics.value[i].time > currentTime) {
-      currentLine.value = Math.max(0, i - 1)
-      return
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2)
+    if (lyrics[mid].time === time) {
+      return mid
+    } else if (lyrics[mid].time < time) {
+      index = mid
+      low = mid + 1
+    } else {
+      high = mid - 1
     }
   }
-  currentLine.value = parsedLyrics.value.length - 1
+
+  return index
+}
+
+// 使用 utils/throttle 封装的节流函数
+const throttledUpdate = throttle((currentTime) => {
+  const lyrics = parsedLyrics.value
+  if (!lyrics.length) return
+  currentLine.value = findCurrentLyricIndex(currentTime, lyrics)
+}, 500)
+
+watch(() => playStore.currentTime, (currentTime) => {
+  throttledUpdate(currentTime)
 })
 
 watch(() => playStore.currentHash, () => {

@@ -3,10 +3,7 @@ import { ref, onMounted, watch } from 'vue'
 import { usePlayStore } from '@/stores/PlaybackHistory'
 import { getPlayListSong } from '@/api/user'
 import { getMusic } from '@/utils/GetMusicList'
-import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
-
-const route = useRoute();
 
 const playStore = usePlayStore()
 const audioPlayer = ref(null)
@@ -16,16 +13,24 @@ const duration = ref(0)
 const volume = ref(0.7)
 const showPlaylist = ref(false)
 const isSeeking = ref(false)
+let seekTimer = null
+const isShow = ref(true)
 const playMode = ref('sequence') // sequence, random, single, loop
 const currentSongInfo = ref({ name: '', artist: '' })
-let seekTimeout = null
 
 const startSeek = () => {
-  isSeeking.value = true
+  seekTimer = setTimeout(() => {
+    isSeeking.value = true
+    isShow.value = false
+  }, 700)
 }
 
 const endSeek = () => {
+  // 无论是否超时，都清除定时器，终止拖动
+  clearTimeout(seekTimer)
+  seekTimer = null
   isSeeking.value = false
+  isShow.value = true
 }
 
 const handleDrag = (e) => {
@@ -183,15 +188,23 @@ watch(() => playStore.currentHash, (newHash) => {
 </script>
 
 <template>
-  <div class="player-container">
+  <div class="player-container"
+    @mousedown="startSeek"
+    @mouseup="endSeek"
+    @mouseleave="endSeek"
+    @mousemove="handleDrag"
+    @touchstart="startSeek"
+    @touchend="endSeek"
+    @touchmove="handleDrag">
+    <!-- 长按后出现的进度条 -->
+    <div v-if="isSeeking"
+      class="seek-progress"
+      :style="{ width: (currentTime / duration * 100) + '%' }">
+      {{ formatTime(currentTime) }}
+    </div>
     <div class="player-controls"
-      @mousedown="startSeek"
-      @mouseup="endSeek"
-      @mouseleave="endSeek"
-      @mousemove="handleDrag"
-      @touchstart="startSeek"
-      @touchend="endSeek"
-      @touchmove="handleDrag">
+      title="长按可调整进度条"
+      :style="{ visibility: isSeeking ? 'hidden' : 'visible' }">
       <button @click="playPrev"
         class="control-btn">⏮</button>
       <button @click="togglePlay"
@@ -254,10 +267,21 @@ watch(() => playStore.currentHash, (newHash) => {
   width: 100%;
   max-width: 800px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 15px;
   background: #f5f5f5;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  cursor: pointer;
+
+  .seek-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #409EFF;
+  }
 }
 
 .player-controls {
@@ -265,7 +289,7 @@ watch(() => playStore.currentHash, (newHash) => {
   display: flex;
   align-items: center;
   gap: 15px;
-  cursor: pointer;
+  user-select: none;
 }
 
 .control-btn {

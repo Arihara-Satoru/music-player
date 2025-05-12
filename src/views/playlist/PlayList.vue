@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, provide, watch } from 'vue';
+import { ref, watch } from 'vue';
 import { getUserPlayList } from '@/api/user';
 import router from '@/router';
 
@@ -42,7 +42,7 @@ const handleCardClick = async (song) => {
     query: { page: 1 } // 正确的查询参数传递方式
   })
 };
-watch(page, (newVal, oldVal) => {
+watch(page, () => {
   getPlayList();
 })
 getPlayList();
@@ -70,7 +70,8 @@ getPlayList();
           <h3 class="song-name">{{ song.name }}</h3>
           <div class="meta-info">
             <span class="id-label">ID: {{ song.listid }}</span>
-            <span class="global-tag">标签:{{ song.tags }}</span>
+            <span v-if="song.tags"
+              class="global-tag">标签:{{ song.tags }}</span>
             <span class="global-intro">介绍:{{ song.intro || '无' }}</span>
           </div>
         </div>
@@ -110,16 +111,19 @@ getPlayList();
   }
 
   .grid {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 1.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    /* ⬅️ 关键：主轴左对齐 */
+    gap: 30px;
+    /* ⬅️ 元素之间的间距 */
   }
 
   .playlist-card {
     position: relative;
     background: #fff;
-    width: 100%;
-    height: 80%;
+    width: 170px;
+    height: 170px;
     border-radius: 12px;
     overflow: hidden;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);

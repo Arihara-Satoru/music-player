@@ -1,14 +1,11 @@
 <script setup>
 // 引入 Vue 的响应式 API 和其他依赖
 import { computed, ref } from 'vue';
-import { usePlayStore } from '@/stores/PlaybackHistory'; // 引入播放历史存储模块
 import { getMusic } from '@/utils/GetMusicList';
 import { getMusicDetail } from '@/api/PlaySong';
 import { ElMessage } from 'element-plus';
 import { useRoute } from 'vue-router'
 const route = useRoute();
-// 初始化播放历史存储
-const playStore = usePlayStore();
 
 // 定义组件的 props，接收音乐列表数据
 const props = defineProps({
@@ -52,6 +49,7 @@ const playsongs = async (hash, name, singer, cover) => {
   const page = route.query.page
   const ids = ref(); // 用于存储当前播放的歌曲的 hash 值
   ids.value = route.params.listid || ''; // 确保 ids.value 被正确赋值
+  console.log('hash', hash, 'id', ids.value, 'musiclist', props.musicList, 'info', info, 'page', page);
   await getMusic(hash, ids.value, props.musicList, info, page);
 };
 
@@ -60,7 +58,7 @@ const handleClick = (song) => {
     ElMessage.warning('该歌曲无版权');
     return;
   }
-  playsongs(song?.hash || song?.FileHash, song.OriSongName || formatSongSinger(song.name), song.SingerName || formatSongName(song.name), song.Image);
+  playsongs(song?.hash || song?.FileHash, song.OriSongName || song.songname || formatSongSinger(song.name), song.SingerName || song.author_name || formatSongName(song.name), song.Image || song.sizable_cover);
 };
 
 // 格式化歌曲时长
@@ -71,6 +69,8 @@ const formatSongDuration = (song) => {
     durationMs = Number(song.timelen); // 如果存在 timelen 字段，则直接使用
   } else if ('Duration' in song) {
     durationMs = Number(song.Duration) * 1000; // 如果存在 Duration 字段，则将其转换为毫秒
+  } else if ('time_length' in song) {
+    durationMs = Number(song.time_length) * 1000;
   }
 
   const totalSeconds = Math.floor(durationMs / 1000); // 将毫秒转换为秒
@@ -130,17 +130,17 @@ const formatSongDuration = (song) => {
         <div class="cover-container">
           <div class="cover-mask"></div>
           <img
-            :src="(song.cover?.replace('{size}', '64') || song.Image?.replace('{size}', '64') || '/default-cover.jpg')"
+            :src="(song.cover?.replace('{size}', '64') || song.sizable_cover?.replace('{size}', '64') || song.Image?.replace('{size}', '64') || '/default-cover.jpg')"
             class="album-cover" />
         </div>
       </el-col>
       <el-col :span="10"
         class="song-title-col">
         <!-- 歌曲标题 -->
-        <span class="song-title">{{ song.OriSongName ||
+        <span class="song-title">{{ song.OriSongName || song.songname ||
           formatSongSinger(song.name) || '歌曲无版权.........' }}</span>
         <!-- 歌手名称（移动端显示） -->
-        <span class="artist-mobile">{{ song.SingerName ||
+        <span class="artist-mobile">{{ song.SingerName || song.author_name ||
           formatSongName(song.name) }}</span>
       </el-col>
       <el-col :span="8"
@@ -254,7 +254,8 @@ const formatSongDuration = (song) => {
 }
 
 .artist-mobile {
-  display: none;
+  display: inline-block;
+  margin-left: 0.5rem;
   color: #666;
   font-size: 0.9rem;
   margin-top: 0.2rem;
