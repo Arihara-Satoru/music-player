@@ -4,15 +4,22 @@ module.exports = {
   directories: {
     output: "release"
   },
+  asar: true,
+  compression: "maximum",
   files: [
     "dist/**/*",
-    "electron/**/*",
-    "KuGouMusicApi/**/*"
+    "electron/**/*"
   ],
   extraResources: [
     {
-      from: "KuGouMusicApi",
-      to: "KuGouMusicApi"
+      from: "KuGouMusicApi/public",
+      to: "KuGouMusicApi/public",
+      filter: ["**/*"]
+    },
+    {
+      from: "KuGouMusicApi/module",
+      to: "KuGouMusicApi/module",
+      filter: ["**/*"]
     }
   ],
   win: {
@@ -22,6 +29,7 @@ module.exports = {
   nsis: {
     oneClick: false,
     perMachine: true,
-    allowToChangeInstallationDirectory: true
+    allowToChangeInstallationDirectory: true,
+    compression: "zlib"
   }
 }
