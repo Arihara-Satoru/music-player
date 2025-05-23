@@ -86,7 +86,7 @@ onMounted(() => {
               <component :is="Component" />
             </transition>
           </router-view>
-          <playerIndex class="miniplayer"></playerindex>
+          <mini-player class="miniplayer"></mini-player>
         </el-main>
       </el-container>
     </el-container>

@@ -1,10 +1,12 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { usePlayStore } from '@/stores/PlaybackHistory'
 import { getPlayListSong } from '@/api/user'
 import { getMusic } from '@/utils/GetMusicList'
 import { ElMessage } from 'element-plus';
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
 const playStore = usePlayStore()
 const audioPlayer = ref(null)
 const isPlaying = ref(false)
@@ -18,28 +20,52 @@ const isShow = ref(true)
 const playMode = ref('sequence') // sequence, random, single, loop
 const currentSongInfo = ref({ name: '', artist: '' })
 
-const startSeek = () => {
+const startSeek = (e) => {
+  if (isSeeking.value) return // ✅ 防止重复进入
+
+  e.preventDefault()
+  e.stopPropagation()
   seekTimer = setTimeout(() => {
     isSeeking.value = true
-    isShow.value = false
+    isShow.value = true
   }, 700)
-}
-
-const endSeek = () => {
-  // 无论是否超时，都清除定时器，终止拖动
-  clearTimeout(seekTimer)
-  seekTimer = null
-  isSeeking.value = false
-  isShow.value = true
+  e.target.dataset.startTime = Date.now()
 }
 
 const handleDrag = (e) => {
-  if (isSeeking.value) {
-    const rect = e.currentTarget.getBoundingClientRect()
-    const percent = (e.clientX - rect.left) / rect.width
-    const newTime = percent * duration.value
-    currentTime.value = Math.max(0, Math.min(newTime, duration.value))
-    seek(currentTime.value)
+  if (!isSeeking.value) return
+
+  e.preventDefault()
+  const clientX = e.clientX || e.touches[0].clientX
+  const rect = document.querySelector('.player-container').getBoundingClientRect()
+  const percent = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width))
+  const newTime = percent * duration.value
+  currentTime.value = newTime
+  seek(newTime)
+}
+
+const endSeek = (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+  clearTimeout(seekTimer)
+
+  const startTime = parseInt(e.target.dataset.startTime || '0')
+  const pressDuration = Date.now() - startTime
+  const isLongPress = pressDuration >= 700
+
+  // 强制结束拖动状态
+  isSeeking.value = false
+  isShow.value = true
+
+  // 清除计时器和数据
+  seekTimer = null
+  delete e.target.dataset.startTime
+
+  // 短按时跳转到播放页面
+  if (!isLongPress &&
+    pressDuration < 700 &&
+    !e.target.closest('button')) {
+    router.push({ path: '/PlayIndex' })
   }
 }
 
@@ -59,6 +85,15 @@ onMounted(() => {
   audioPlayer.value.addEventListener('ended', () => {
     playNext()
   })
+
+  // 添加全局鼠标/触摸松开监听
+  window.addEventListener('mouseup', endSeek)
+  window.addEventListener('touchend', endSeek)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('mouseup', endSeek)
+  window.removeEventListener('touchend', endSeek)
 })
 
 // 播放控制方法
@@ -189,32 +224,50 @@ watch(() => playStore.currentHash, (newHash) => {
 
 <template>
   <div class="player-container"
-    @mousedown="startSeek"
-    @mouseup="endSeek"
-    @mouseleave="endSeek"
     @mousemove="handleDrag"
-    @touchstart="startSeek"
-    @touchend="endSeek"
     @touchmove="handleDrag">
     <!-- 长按后出现的进度条 -->
-    <div v-if="isSeeking"
+    <!-- 进度条单独放置，始终在最上层 -->
+    <div v-show="isSeeking"
       class="seek-progress"
+      @mousedown="handleDrag"
+      @mousemove="handleDrag"
+      @mouseup="handleDrag"
+      @touchstart="handleDrag"
+      @touchmove="handleDrag"
+      @touchend="handleDrag"
       :style="{ width: (currentTime / duration * 100) + '%' }">
       {{ formatTime(currentTime) }}
     </div>
+
+    <!-- 控制区域，进度条显示时隐藏 -->
     <div class="player-controls"
-      title="长按可调整进度条"
-      :style="{ visibility: isSeeking ? 'hidden' : 'visible' }">
-      <button @click="playPrev"
+      v-show="!isSeeking">
+      <!-- 非按钮区域用于长按/点击 -->
+      <div class="non-button-area"
+        @mousedown="startSeek"
+        @mouseup="endSeek"
+        @touchstart="startSeek"
+        @touchend="endSeek"
+        title="长按可调整进度条">
+      </div>
+      <button @click.stop="getMoreList"
+        :style="{ visibility: isSeeking ? 'hidden' : 'visible' }"
+        class="control-btn">⏎</button>
+      <button @click.stop="playPrev"
         class="control-btn">⏮</button>
-      <button @click="togglePlay"
+      <button @click.stop="togglePlay"
         class="control-btn">
         {{ isPlaying ? '⏸' : '⏵' }}
       </button>
-      <button @click="playNext"
+      <button @click.stop="playNext"
         class="control-btn">⏭</button>
 
-      <div class="song-info">
+      <div class="song-info"
+        @mousedown="startSeek"
+        @mouseup="endSeek"
+        @touchstart.passive="startSeek"
+        @touchend.passive="endSeek">
         <img :src=currentSongInfo.cover
           alt="">
         <div class="scroll-text">
@@ -225,7 +278,7 @@ watch(() => playStore.currentHash, (newHash) => {
         :class="{ 'seeking': isSeeking }">
         {{ formatTime(currentTime) }} / {{ formatTime(duration) }}
       </div>
-      <button @click="togglePlayMode"
+      <button @click.stop="togglePlayMode"
         class="mode-btn">
         {{ getPlayModeIcon() }}
       </button>
@@ -239,7 +292,7 @@ watch(() => playStore.currentHash, (newHash) => {
           class="volume-bar">
       </div>
       <div class="bottom-controls">
-        <button @click="showPlaylist = !showPlaylist"
+        <button @click.stop="showPlaylist = !showPlaylist"
           class="toggle-playlist">
           {{ showPlaylist ? '▼' : '▲' }}
         </button>
@@ -275,12 +328,18 @@ watch(() => playStore.currentHash, (newHash) => {
   cursor: pointer;
 
   .seek-progress {
-    position: absolute;
-    bottom: 0;
+    top: 0;
     left: 0;
     width: 100%;
-    height: 100%;
-    background-color: #409EFF;
+    height: 60px;
+    background-color: rgba(64, 158, 255, 0.3);
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    color: white;
+    cursor: grab;
   }
 }
 
@@ -290,6 +349,37 @@ watch(() => playStore.currentHash, (newHash) => {
   align-items: center;
   gap: 15px;
   user-select: none;
+  z-index: 10;
+  position: relative;
+
+  * {
+    z-index: 4;
+  }
+
+  button {
+    z-index: 10;
+    position: relative;
+  }
+
+  .non-button-area {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 1;
+    /* 排除按钮区域 */
+    clip-path: polygon(0 0,
+        200px 0,
+        200px 100%,
+        0 100%,
+        0 0,
+        calc(100% - 200px) 0,
+        100% 0,
+        100% 100%,
+        calc(100% - 200px) 100%,
+        200px 100%);
+  }
 }
 
 .control-btn {

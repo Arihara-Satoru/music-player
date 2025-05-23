@@ -33,8 +33,8 @@ const router = createRouter({
       ]
     },
     {
-      path:'/playindex',
-      name:'playindex',
+      path:'/PlayIndex',
+      name:'PlayIndex',
       component: () => import('@/views/play/PlayIndex.vue'),
     }
   ],
