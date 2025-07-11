@@ -1,7 +1,4 @@
-<script setup>
-// import HelloWorld from './views/HelloWorld.vue';
-// import LoginIndex from './views/login/LoginIndex.vue';
-</script>
+<script setup></script>
 
 <template>
   <!-- <router-link to="/home"></router-link> -->

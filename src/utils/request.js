@@ -1,6 +1,27 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 
+// 健康检查函数
+const checkBackendHealth = async () => {
+  const maxAttempts = 30
+  const delay = 1000
+  const healthEndpoint = '/health'
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      await axios.get(service.defaults.baseURL + healthEndpoint, {
+        timeout: 1000
+      })
+      return true
+    } catch {
+      if (attempt < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, delay))
+      }
+    }
+  }
+  return false
+}
+
 const service = axios.create({
   baseURL: 'http://localhost:12345',
   timeout: 10000,
@@ -9,7 +30,19 @@ const service = axios.create({
 
 // 请求拦截器
 service.interceptors.request.use(
-  (config) => {
+  async (config) => {
+    // 跳过健康检查请求本身
+    if (config.url === '/health') {
+      return config
+    }
+
+    // 检查后端是否就绪
+    const isBackendReady = await checkBackendHealth()
+    if (!isBackendReady) {
+      ElMessage.error('后端服务未就绪，请稍后再试')
+      return Promise.reject(new Error('Backend not ready'))
+    }
+
     const token = localStorage.getItem('token')
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`
@@ -59,7 +92,11 @@ service.interceptors.response.use(
           ElMessage.error(`请求失败: ${error.message}`)
       }
     } else if (error.request) {
-      ElMessage.error('网络异常，请检查连接')
+      if (error.message.includes('Network Error') || error.message.includes('ECONNREFUSED')) {
+        ElMessage.info('等待后端启动')
+      } else {
+        ElMessage.error('网络异常，请检查连接')
+      }
     } else {
       ElMessage.error('请求配置错误')
     }
