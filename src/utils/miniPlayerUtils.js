@@ -62,9 +62,7 @@ export function useMiniPlayer() {
     delete e.target.dataset.startTime
 
     // 短按时跳转到播放页面
-    if (!isLongPress &&
-      pressDuration < 700 &&
-      !e.target.closest('button')) {
+    if (!isLongPress && pressDuration < 700 && !e.target.closest('button')) {
       router.push({ path: '/PlayIndex' })
     }
   }
@@ -106,17 +104,6 @@ export function useMiniPlayer() {
     isPlaying.value = !isPlaying.value
   }
 
-  const setVolume = (val) => {
-    volume.value = val
-    audioPlayer.value.volume = val
-  }
-
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = Math.floor(seconds % 60)
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`
-  }
-
   const seek = (time) => {
     audioPlayer.value.currentTime = time
   }
@@ -138,7 +125,7 @@ export function useMiniPlayer() {
 
   const playNext = () => {
     const currentIndex = playStore.MusicList.findIndex(
-      song => song.hash === playStore.currentHash
+      (song) => song.hash === playStore.currentHash,
     )
     if (currentIndex === -1) return
 
@@ -169,27 +156,14 @@ export function useMiniPlayer() {
     playMode.value = modes[(currentIndex + 1) % modes.length]
   }
 
-  const getPlayModeIcon = () => {
-    switch (playMode.value) {
-      case 'random': return '🔀'
-      case 'single': return '🔂'
-      case 'loop': return '🔁'
-      default: return '→'
-    }
-  }
-
   const playPrev = () => {
     const currentIndex = playStore.MusicList.findIndex(
-      song => song.hash === playStore.currentHash
+      (song) => song.hash === playStore.currentHash,
     )
     if (currentIndex !== -1) {
       const prevIndex = (currentIndex - 1 + playStore.MusicList.length) % playStore.MusicList.length
       playSong(prevIndex)
     }
-  }
-
-  const isCurrentSong = (song) => {
-    return song.hash === playStore.currentHash;
   }
 
   const getMoreList = async () => {
@@ -200,25 +174,28 @@ export function useMiniPlayer() {
       return
     }
     playStore.setPage(Number(playStore.page) + 1)
-    await getMusic('', playStore.musicIds, res.data.songs, '', Number(playStore.page) + 1);
+    await getMusic('', playStore.musicIds, res.data.songs, '', Number(playStore.page) + 1)
   }
 
   // 监听播放列表变化
-  watch(() => playStore.currentHash, (newHash) => {
-    if (newHash) {
-      const currentSong = playStore.MusicList.find(song => song.hash === newHash)
-      if (currentSong) {
-        audioPlayer.value.src = currentSong.url
-        audioPlayer.value.play()
-        isPlaying.value = true
-        currentSongInfo.value = {
-          name: currentSong.name,
-          artist: currentSong.artist,
-          cover: currentSong.cover
+  watch(
+    () => playStore.currentHash,
+    (newHash) => {
+      if (newHash) {
+        const currentSong = playStore.MusicList.find((song) => song.hash === newHash)
+        if (currentSong) {
+          audioPlayer.value.src = currentSong.url
+          audioPlayer.value.play()
+          isPlaying.value = true
+          currentSongInfo.value = {
+            name: currentSong.name,
+            artist: currentSong.artist,
+            cover: currentSong.cover,
+          }
         }
       }
-    }
-  })
+    },
+  )
 
   return {
     audioPlayer,
@@ -235,15 +212,11 @@ export function useMiniPlayer() {
     handleDrag,
     endSeek,
     togglePlay,
-    setVolume,
-    formatTime,
     seek,
     playSong,
     playNext,
     togglePlayMode,
-    getPlayModeIcon,
     playPrev,
-    isCurrentSong,
-    getMoreList
+    getMoreList,
   }
 }

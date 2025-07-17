@@ -37,7 +37,6 @@ export const usePlayStore = defineStore(
     const initAudioPlayer = () => {
       console.log('--- initAudioPlayer 被调用 ---') // 添加日志
       audioPlayer.value = new Audio()
-      audioPlayer.value.volume = 0.7
       console.log('音频播放器已初始化')
 
       audioPlayer.value.addEventListener('timeupdate', () => {
@@ -345,6 +344,7 @@ export const usePlayStore = defineStore(
       musicIds,
       page,
       totalMusic,
+      audioPlayer, // 导出audioPlayer
       setPage,
       setMusicIds,
       setMusicList,

@@ -1,6 +1,6 @@
 <script setup>
 import { usePlayStore } from '@/stores/PlaybackHistory'
-import { ref, onUnmounted } from 'vue'
+import { ref, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 const playStore = usePlayStore()
@@ -8,6 +8,19 @@ const showPlaylist = ref(false)
 const isSeeking = ref(false)
 const volume = ref(0.7)
 const router = useRouter()
+
+// 监听 audioPlayer 变化以同步音量
+watch(
+  () => playStore.audioPlayer,
+  (newPlayer) => {
+    console.log('audioPlayer 变化:', newPlayer)
+    if (newPlayer) {
+      console.log('同步音量到滑块:', newPlayer.volume)
+      volume.value = newPlayer.volume
+    }
+  },
+  { immediate: true },
+)
 
 let longPressTimer = null
 const LONG_PRESS_THRESHOLD = 300
@@ -75,11 +88,14 @@ const handleMouseMove = (e) => {
 }
 
 const setVolume = (val) => {
+  console.log('设置音量值:', val)
   volume.value = val
-  console.log('设置音量:', val, 'audioPlayer:', playStore.audioPlayer) // 添加日志
   if (playStore.audioPlayer) {
+    console.log('audioPlayer 实例存在，设置音量')
     playStore.audioPlayer.volume = val
-    console.log('audioPlayer.volume 实际设置为:', playStore.audioPlayer.volume) // 确认实际设置值
+    console.log('当前实际音量:', playStore.audioPlayer.volume)
+  } else {
+    console.warn('audioPlayer 实例不存在')
   }
 }
 
@@ -193,7 +209,8 @@ onUnmounted(() => {
   max-width: 800px;
   margin: 0 auto;
   padding: 15px;
-  background: #f5f5f5;
+  background-color: rgba(255, 255, 255, 0.3); /* 更透明的背景 */
+  backdrop-filter: blur(20px); /* 更柔和的高斯模糊效果 */
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   overflow: hidden;
