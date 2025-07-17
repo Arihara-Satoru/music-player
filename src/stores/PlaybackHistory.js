@@ -1,111 +1,244 @@
-import { defineStore } from 'pinia';
-import { ref} from 'vue';
-import {getMusicDetail,searchLyric,getLyric,playSong} from "@/api/PlaySong";
+import { defineStore } from 'pinia'
+import { ref, onMounted, onUnmounted } from 'vue'
+import { getMusicDetail, searchLyric, getLyric, playSong as playSongApi } from '@/api/PlaySong'
 
-export const usePlayStore = defineStore('PlayHistory', () => {
-  // 播放历史，包含一首歌曲的详细信息
-  const MusicList = ref([
-    {
-      hash: '', // 歌曲的唯一标识符
-      // 歌曲的详细信息
-      // 这些信息可以从 API 获取，或者在添加到播放列表时传入
-      name: '歌曲名称',
-      artist: '歌手',
-      url: 'https://example.com/song.mp3', // 替换为实际的歌曲链接
-      cover: 'https://example.com/cover.jpg', // 替换为实际的封面图片链接
-      lrc: 'https://example.com/lrc.lrc', // 替换为实际的歌词链接
-    },
-  ]);
+export const usePlayStore = defineStore(
+  'PlayHistory',
+  () => {
+    // 播放历史，包含一首歌曲的详细信息
+    const MusicList = ref([])
+    const musicIds = ref(0)
+    const page = ref(1)
+    const currentHash = ref('')
+    const currentTime = ref(0)
+    const duration = ref(0)
+    const isPlaying = ref(false)
+    const audioPlayer = ref(null)
+    const currentSongInfo = ref({
+      name: '',
+      artist: '',
+      cover: '',
+      url: '',
+    })
 
-  const musicIds = ref(0);
-  const page = ref(1); // 当前播放的歌曲的索引
+    // 初始化音频播放器
+    const initAudioPlayer = () => {
+      audioPlayer.value = new Audio()
+      audioPlayer.value.volume = 0.7
+      console.log('初始化音频播放器')
 
-  //当前播放的歌曲的hash值
-  const currentHash = ref();
+      audioPlayer.value.addEventListener('timeupdate', () => {
+        currentTime.value = audioPlayer.value.currentTime
+        console.log('时间更新:', currentTime.value)
+      })
 
-  // 当前播放时间
-  const currentTime = ref(0);
+      audioPlayer.value.addEventListener('durationchange', () => {
+        duration.value = audioPlayer.value.duration || 0
+        console.log('时长变化:', duration.value)
+      })
 
-  const setMusicIds = (ids) => {
-    musicIds.value = ids;
-  }
+      audioPlayer.value.addEventListener('loadedmetadata', () => {
+        console.log('音频元数据加载完成, readyState:', audioPlayer.value.readyState)
+        console.log('音频时长:', audioPlayer.value.duration)
+      })
 
-  const setPage = (p) => {
-    page.value = p;
-  };
-  // 用于更新播放历史
-  const setMusicList = async () => {
-    try {
-      const res = await getMusicDetail(currentHash.value);
-      console.log('setMusicList res', res);
-    } catch (error) {
-      console.error('setMusicList 错误', error);
+      audioPlayer.value.addEventListener('canplay', () => {
+        console.log('音频可以播放')
+      })
+
+      audioPlayer.value.addEventListener('ended', () => {
+        console.log('播放结束')
+        playNext()
+      })
+
+      audioPlayer.value.addEventListener('error', (e) => {
+        console.error('音频播放错误:', e)
+        console.error('错误代码:', audioPlayer.value.error.code)
+        isPlaying.value = false
+      })
     }
-  };
 
-  //更改当前播放的音乐hash
-  const updateCurrentHash = async (newHash) => {
-    try {
-      const res = await playSong(newHash);
-      const { candidates } = await searchLyric(newHash); // 搜索歌词候选
-      const { decodeContent } = await getLyric(candidates[0].id, candidates[0].accesskey); // 获取歌词内容
-      MusicList.value = MusicList.value.map((item) => {
-        if (item.hash === newHash) {
-          return {
-            ...item,
-            url: res.backupUrl[0],
-            lrc: decodeContent,
-          };
+    onMounted(() => {
+      initAudioPlayer()
+    })
+
+    onUnmounted(() => {
+      if (audioPlayer.value) {
+        audioPlayer.value.pause()
+        audioPlayer.value = null
+      }
+    })
+
+    const setMusicIds = (ids) => {
+      musicIds.value = ids
+    }
+
+    const setPage = (p) => {
+      page.value = p
+    }
+
+    const setMusicList = async () => {
+      try {
+        const res = await getMusicDetail(currentHash.value)
+        console.log('setMusicList res', res)
+      } catch (error) {
+        console.error('setMusicList 错误', error)
+      }
+    }
+
+    const updateCurrentHash = async (newHash) => {
+      try {
+        const res = await playSongApi(newHash)
+        console.log('playSong res', res)
+        if (!res) {
+          throw new Error('playSong 返回数据格式不正确')
         }
-        return item;
-      });
-    } catch (error) {
-      console.error('获取音乐详情失败', error);
+        if (!res.backupUrl?.length) {
+          console.warn('playSong 返回的数据中缺少 backupUrl')
+          return
+        }
+        const { candidates } = await searchLyric(newHash)
+        let decodeContent = ''
+        if (candidates?.length > 0) {
+          const lyricRes = await getLyric(candidates[0].id, candidates[0].accesskey)
+          decodeContent = lyricRes.decodeContent
+        }
+        MusicList.value = MusicList.value.map((item) => {
+          if (item.hash === newHash) {
+            return {
+              ...item,
+              url: res?.backupUrl?.[0] || '',
+              lrc: decodeContent,
+            }
+          }
+          return item
+        })
+        currentHash.value = newHash
+      } catch (error) {
+        console.error('获取音乐详情失败', error)
+      }
     }
-    currentHash.value = newHash;
-  };
 
-  const setHashList = (hash,name,artist,cover) => {
-    const index = MusicList.value.findIndex(item => item.hash === hash);
-    if (index === -1) {
-      MusicList.value.push({
-        hash: hash,
-        name: name,
-        artist: artist,
-        url: '',
-        cover: cover,
-        lrc: '',
-      });
+    const setHashList = (hash, name, artist, cover) => {
+      if (!MusicList.value.some((item) => item.hash === hash)) {
+        MusicList.value.push({
+          hash,
+          name,
+          artist,
+          url: '',
+          cover,
+          lrc: '',
+        })
+      }
     }
-  }
-  const deleteHash = () => {
-    MusicList.value = [];
-  }
 
-  const clearPlayList = () => {
-    MusicList.value = [];
-  }
+    const deleteHash = () => {
+      MusicList.value = []
+    }
 
-  // 更新当前播放时间
-  const setCurrentTime = (time) => {
-    currentTime.value = time;
-  };
+    const clearPlayList = () => {
+      MusicList.value = []
+    }
 
-  return {
-    MusicList,
-    currentHash,
-    currentTime,
-    musicIds,
-    page,
-    setPage,
-    setMusicIds,
-    setMusicList,
-    updateCurrentHash,
-    deleteHash,
-    setHashList,
-    clearPlayList,
-    setCurrentTime
-  };
-}, {
-  persist: true, // 启用持久化
-});
+    const setCurrentTime = (time) => {
+      currentTime.value = time
+      if (audioPlayer.value) {
+        audioPlayer.value.currentTime = time
+      }
+    }
+
+    const togglePlay = () => {
+      if (!audioPlayer.value) return
+      if (isPlaying.value) {
+        audioPlayer.value.pause()
+      } else {
+        audioPlayer.value.play()
+      }
+      isPlaying.value = !isPlaying.value
+    }
+
+    const playSong = (index) => {
+      const song = MusicList.value[index]
+      if (song && audioPlayer.value) {
+        if (!song.url) {
+          console.error('播放失败: 歌曲URL为空')
+          return
+        }
+
+        console.log('准备播放歌曲:', song.name)
+        console.log('歌曲URL:', song.url)
+        console.log('当前audioPlayer状态:', {
+          readyState: audioPlayer.value.readyState,
+          networkState: audioPlayer.value.networkState,
+          error: audioPlayer.value.error,
+        })
+
+        audioPlayer.value.src = song.url
+        audioPlayer.value.load() // 显式调用load
+
+        const playPromise = audioPlayer.value.play()
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              console.log('播放成功')
+            })
+            .catch((error) => {
+              console.error('播放失败:', error)
+              isPlaying.value = false
+            })
+        }
+
+        isPlaying.value = true
+        currentHash.value = song.hash
+        currentSongInfo.value = {
+          name: song.name,
+          artist: song.artist,
+          cover: song.cover,
+          url: song.url,
+        }
+      }
+    }
+
+    const playNext = () => {
+      const currentIndex = MusicList.value.findIndex((song) => song.hash === currentHash.value)
+      if (currentIndex !== -1) {
+        const nextIndex = (currentIndex + 1) % MusicList.value.length
+        playSong(nextIndex)
+      }
+    }
+
+    const playPrev = () => {
+      const currentIndex = MusicList.value.findIndex((song) => song.hash === currentHash.value)
+      if (currentIndex !== -1) {
+        const prevIndex = (currentIndex - 1 + MusicList.value.length) % MusicList.value.length
+        playSong(prevIndex)
+      }
+    }
+
+    return {
+      MusicList,
+      currentHash,
+      currentTime,
+      duration,
+      isPlaying,
+      currentSongInfo,
+      musicIds,
+      page,
+      setPage,
+      setMusicIds,
+      setMusicList,
+      updateCurrentHash,
+      deleteHash,
+      setHashList,
+      clearPlayList,
+      setCurrentTime,
+      togglePlay,
+      playSong,
+      playNext,
+      playPrev,
+    }
+  },
+  {
+    persist: true,
+  },
+)

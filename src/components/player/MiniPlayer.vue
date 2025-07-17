@@ -1,31 +1,48 @@
 <script setup>
-import { useMiniPlayer } from '@/utils/miniPlayerUtils'
-import { usePlayStore } from '@/stores/PlaybackHistory' // 导入 usePlayStore
+import { usePlayStore } from '@/stores/PlaybackHistory'
+import { ref } from 'vue'
 
-const {
-  isPlaying,
-  currentTime,
-  duration,
-  volume,
-  showPlaylist,
-  isSeeking,
-  currentSongInfo,
-  startSeek,
-  handleDrag,
-  endSeek,
-  togglePlay,
-  setVolume,
-  formatTime,
-  playSong,
-  playNext,
-  togglePlayMode,
-  getPlayModeIcon,
-  playPrev,
-  isCurrentSong,
-  getMoreList,
-} = useMiniPlayer()
+const playStore = usePlayStore()
+const showPlaylist = ref(false)
+const isSeeking = ref(false)
+const volume = ref(0.7)
 
-const playStore = usePlayStore() // 初始化 playStore
+const formatTime = (seconds) => {
+  const mins = Math.floor(seconds / 60)
+  const secs = Math.floor(seconds % 60)
+  return `${mins}:${secs < 10 ? '0' : ''}${secs}`
+}
+
+const isCurrentSong = (song) => {
+  return song.hash === playStore.currentHash
+}
+
+const startSeek = () => {
+  isSeeking.value = true
+}
+
+const handleDrag = (e) => {
+  if (!isSeeking.value) return
+  const clientX = e.clientX || e.touches[0].clientX
+  const rect = e.currentTarget.getBoundingClientRect()
+  const percent = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width))
+  playStore.setCurrentTime(percent * playStore.duration)
+}
+
+const endSeek = () => {
+  isSeeking.value = false
+}
+
+const setVolume = (val) => {
+  volume.value = val
+  if (playStore.audioPlayer) {
+    playStore.audioPlayer.volume = val
+  }
+}
+
+const getPlayModeIcon = () => {
+  return '→' // 简化处理，实际应根据store中的播放模式返回不同图标
+}
 </script>
 
 <template>
@@ -41,9 +58,9 @@ const playStore = usePlayStore() // 初始化 playStore
       @touchstart="handleDrag"
       @touchmove="handleDrag"
       @touchend="handleDrag"
-      :style="{ width: (currentTime / duration) * 100 + '%' }"
+      :style="{ width: (playStore.currentTime / playStore.duration) * 100 + '%' }"
     >
-      {{ formatTime(currentTime) }}
+      {{ formatTime(playStore.currentTime) }}
     </div>
 
     <!-- 控制区域，进度条显示时隐藏 -->
@@ -58,17 +75,17 @@ const playStore = usePlayStore() // 初始化 playStore
         title="长按可调整进度条"
       ></div>
       <button
-        @click.stop="getMoreList"
+        @click.stop="playStore.getMoreList"
         :style="{ visibility: isSeeking ? 'hidden' : 'visible' }"
         class="control-btn"
       >
         ⏎
       </button>
-      <button @click.stop="playPrev" class="control-btn">⏮</button>
-      <button @click.stop="togglePlay" class="control-btn">
-        {{ isPlaying ? '⏸' : '⏵' }}
+      <button @click.stop="playStore.playPrev" class="control-btn">⏮</button>
+      <button @click.stop="playStore.togglePlay" class="control-btn">
+        {{ playStore.isPlaying ? '⏸' : '⏵' }}
       </button>
-      <button @click.stop="playNext" class="control-btn">⏭</button>
+      <button @click.stop="playStore.playNext" class="control-btn">⏭</button>
 
       <div
         class="song-info"
@@ -77,15 +94,15 @@ const playStore = usePlayStore() // 初始化 playStore
         @touchstart.passive="startSeek"
         @touchend.passive="endSeek"
       >
-        <img :src="currentSongInfo.cover" alt="" />
+        <img :src="playStore.currentSongInfo.cover" alt="" />
         <div class="scroll-text">
-          {{ currentSongInfo.name }}
+          {{ playStore.currentSongInfo.name }}
         </div>
       </div>
       <div class="time-display" :class="{ seeking: isSeeking }">
-        {{ formatTime(currentTime) }} / {{ formatTime(duration) }}
+        {{ formatTime(playStore.currentTime) }} / {{ formatTime(playStore.duration) }}
       </div>
-      <button @click.stop="togglePlayMode" class="mode-btn">
+      <button @click.stop="playStore.togglePlayMode" class="mode-btn">
         {{ getPlayModeIcon() }}
       </button>
       <div class="volume-control">
@@ -112,11 +129,11 @@ const playStore = usePlayStore() // 初始化 playStore
           v-for="(song, index) in playStore.MusicList"
           :key="index"
           :class="['playlist-item', { 'active-song': isCurrentSong(song) }]"
-          @click="playSong(index)"
+          @click="playStore.playSong(index)"
         >
           {{ song.name }} - {{ song.artist }}
         </div>
-        <p class="get-more" @click="getMoreList()">加载更多。。。</p>
+        <p class="get-more" @click="playStore.getMoreList()">加载更多。。。</p>
       </div>
     </transition>
   </div>
