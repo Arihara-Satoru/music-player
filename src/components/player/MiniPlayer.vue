@@ -1,11 +1,20 @@
 <script setup>
 import { usePlayStore } from '@/stores/PlaybackHistory'
-import { ref } from 'vue'
+import { ref, onUnmounted } from 'vue' // 移除 onMounted
+import { useRouter } from 'vue-router'
 
 const playStore = usePlayStore()
 const showPlaylist = ref(false)
 const isSeeking = ref(false)
 const volume = ref(0.7)
+const router = useRouter()
+
+let longPressTimer = null
+const LONG_PRESS_THRESHOLD = 300
+
+// 用于存储拖动开始时的鼠标X坐标和进度条的初始宽度
+let startX = 0
+let startProgressWidth = 0
 
 const formatTime = (seconds) => {
   const mins = Math.floor(seconds / 60)
@@ -17,47 +26,94 @@ const isCurrentSong = (song) => {
   return song.hash === playStore.currentHash
 }
 
-const startSeek = () => {
-  isSeeking.value = true
+const handleMouseDown = (e) => {
+  // 阻止默认行为，避免文本选择等
+  e.preventDefault()
+  // 记录拖动开始时的鼠标X坐标
+  startX = e.clientX || e.touches[0].clientX
+  // 记录当前进度条的宽度百分比
+  startProgressWidth = (playStore.currentTime / playStore.duration) * 100
+
+  // 鼠标按下时启动定时器
+  longPressTimer = setTimeout(() => {
+    isSeeking.value = true // 达到长按阈值，进入拖动模式
+    // 绑定全局的 mousemove 和 mouseup 事件
+    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mouseup', handleMouseUp)
+    window.addEventListener('touchmove', handleMouseMove)
+    window.addEventListener('touchend', handleMouseUp)
+  }, LONG_PRESS_THRESHOLD)
 }
 
-const handleDrag = (e) => {
-  if (!isSeeking.value) return
+const handleMouseUp = () => {
+  clearTimeout(longPressTimer) // 清除定时器
+  if (!isSeeking.value) {
+    // 如果没有进入拖动模式，说明是单击，跳转页面
+    router.push('/PlayIndex')
+  }
+  isSeeking.value = false // 结束拖动模式
+  // 移除全局的 mousemove 和 mouseup 事件监听器
+  window.removeEventListener('mousemove', handleMouseMove)
+  window.removeEventListener('mouseup', handleMouseUp)
+  window.removeEventListener('touchmove', handleMouseMove)
+  window.removeEventListener('touchend', handleMouseUp)
+}
+
+const handleMouseMove = (e) => {
+  if (!isSeeking.value) return // 只有在拖动模式下才处理移动
+
   const clientX = e.clientX || e.touches[0].clientX
-  const rect = e.currentTarget.getBoundingClientRect()
-  const percent = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width))
-  playStore.setCurrentTime(percent * playStore.duration)
-}
+  const playerContainer = document.querySelector('.player-container') // 获取播放器容器
+  if (!playerContainer) return
 
-const endSeek = () => {
-  isSeeking.value = false
+  const rect = playerContainer.getBoundingClientRect() // 获取播放器容器的尺寸和位置
+  const deltaX = clientX - startX // 鼠标移动的距离
+  const newProgressWidth = startProgressWidth + (deltaX / rect.width) * 100 // 计算新的进度条宽度百分比
+
+  const percent = Math.min(1, Math.max(0, newProgressWidth / 100)) // 限制在 0 到 1 之间
+  playStore.setCurrentTime(percent * playStore.duration)
 }
 
 const setVolume = (val) => {
   volume.value = val
+  console.log('设置音量:', val, 'audioPlayer:', playStore.audioPlayer) // 添加日志
   if (playStore.audioPlayer) {
     playStore.audioPlayer.volume = val
+    console.log('audioPlayer.volume 实际设置为:', playStore.audioPlayer.volume) // 确认实际设置值
   }
 }
 
 const getPlayModeIcon = () => {
-  return '→' // 简化处理，实际应根据store中的播放模式返回不同图标
+  // 根据 playStore.currentPlayMode 返回不同图标
+  switch (playStore.currentPlayMode) {
+    case '顺序播放':
+      return '🔀' // 顺序播放图标
+    case '单曲循环':
+      return '🔁' // 单曲循环图标
+    case '随机播放':
+      return '🔂' // 随机播放图标
+    default:
+      return '→' // 默认图标
+  }
 }
+
+// 在组件卸载时确保清除所有事件监听器
+onUnmounted(() => {
+  clearTimeout(longPressTimer)
+  window.removeEventListener('mousemove', handleMouseMove)
+  window.removeEventListener('mouseup', handleMouseUp)
+  window.removeEventListener('touchmove', handleMouseMove)
+  window.removeEventListener('touchend', handleMouseUp)
+})
 </script>
 
 <template>
-  <div class="player-container" @mousemove="handleDrag" @touchmove="handleDrag">
+  <div class="player-container">
     <!-- 长按后出现的进度条 -->
     <!-- 进度条单独放置，始终在最上层 -->
     <div
       v-show="isSeeking"
       class="seek-progress"
-      @mousedown="handleDrag"
-      @mousemove="handleDrag"
-      @mouseup="handleDrag"
-      @touchstart="handleDrag"
-      @touchmove="handleDrag"
-      @touchend="handleDrag"
       :style="{ width: (playStore.currentTime / playStore.duration) * 100 + '%' }"
     >
       {{ formatTime(playStore.currentTime) }}
@@ -68,10 +124,10 @@ const getPlayModeIcon = () => {
       <!-- 非按钮区域用于长按/点击 -->
       <div
         class="non-button-area"
-        @mousedown="startSeek"
-        @mouseup="endSeek"
-        @touchstart="startSeek"
-        @touchend="endSeek"
+        @mousedown="handleMouseDown"
+        @mouseup="handleMouseUp"
+        @touchstart.passive="handleMouseDown"
+        @touchend.passive="handleMouseUp"
         title="长按可调整进度条"
       ></div>
       <button
@@ -89,10 +145,10 @@ const getPlayModeIcon = () => {
 
       <div
         class="song-info"
-        @mousedown="startSeek"
-        @mouseup="endSeek"
-        @touchstart.passive="startSeek"
-        @touchend.passive="endSeek"
+        @mousedown="handleMouseDown"
+        @mouseup="handleMouseUp"
+        @touchstart.passive="handleMouseDown"
+        @touchend.passive="handleMouseUp"
       >
         <img :src="playStore.currentSongInfo.cover" alt="" />
         <div class="scroll-text">

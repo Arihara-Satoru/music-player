@@ -2,15 +2,11 @@
   <div class="music-player-container">
     <!-- 头部: 返回，最小化，全屏，关闭 -->
     <header class="player-header">
-      <button class="control-btn"
-        @click="goBack">←</button>
+      <button class="control-btn" @click="goBack">←</button>
       <div class="window-controls">
-        <button class="control-btn"
-          @click="minimize">—</button>
-        <button class="control-btn"
-          @click="toggleFullscreen">[]</button>
-        <button class="control-btn"
-          @click="closeWindow">×</button>
+        <button class="control-btn" @click="minimize">—</button>
+        <button class="control-btn" @click="toggleFullscreen">[]</button>
+        <button class="control-btn" @click="closeWindow">×</button>
       </div>
     </header>
 
@@ -18,9 +14,7 @@
     <main class="player-main">
       <div class="cover-container">
         <!-- 音乐封面 -->
-        <img :src="coverUrl"
-          alt="Music Cover"
-          class="music-cover" />
+        <img :src="coverUrl" alt="Music Cover" class="music-cover" />
       </div>
       <div class="lyrics-container">
         <!-- 在此处嵌入歌词组件或直接插入歌词文本 -->
@@ -28,67 +22,41 @@
       </div>
     </main>
 
-    <!-- 底部: 进度条与控制按钮 -->
+    <!-- 底部: 播放器控制组件 -->
     <footer class="player-footer">
-      <input type="range"
-        class="progress-bar"
-        :min="0"
-        :max="duration"
-        v-model="currentTime"
-        @input="onSeek" />
-      <div class="controls">
-        <button class="control-btn"
-          @click="prevTrack">⏮</button>
-        <button class="control-btn"
-          @click="togglePlay">
-          {{ isPlaying ? '⏸' : '▶️' }}
-        </button>
-        <button class="control-btn"
-          @click="nextTrack">⏭</button>
-      </div>
+      <MiniPlayer />
     </footer>
   </div>
 </template>
 
 <script setup>
-import router from '@/router';
-import { ref, onMounted } from 'vue';
+import router from '@/router'
+import { ref } from 'vue'
+import MiniPlayer from '@/components/player/MiniPlayer.vue' // 引入 MiniPlayer 组件
+import { usePlayStore } from '@/stores/PlaybackHistory' // 引入 PlayStore
 
-// 音乐封面 URL
-const coverUrl = ref('path/to/cover.jpg');
-const audio = ref(null);
-const isPlaying = ref(false);
-const currentTime = ref(0);
-const duration = ref(0);
+const playStore = usePlayStore() // 使用 PlayStore
 
-onMounted(() => {
-  audio.value = new Audio('path/to/music.mp3');
-  audio.value.addEventListener('loadedmetadata', () => {
-    duration.value = Math.floor(audio.value.duration);
-  });
-  audio.value.addEventListener('timeupdate', () => {
-    currentTime.value = Math.floor(audio.value.currentTime);
-  });
-});
+// 音乐封面 URL，从 PlayStore 获取
+const coverUrl = ref(playStore.currentSongInfo.cover || 'path/to/default-cover.jpg')
 
-// 播放/暂停切换
-function togglePlay() {
-  if (!audio.value) return;
-  isPlaying.value ? audio.value.pause() : audio.value.play();
-  isPlaying.value = !isPlaying.value;
+// 监听 currentSongInfo 的变化来更新封面
+playStore.$subscribe((mutation, state) => {
+  coverUrl.value = state.currentSongInfo.cover || 'path/to/default-cover.jpg'
+})
+
+function goBack() {
+  router.go(-1)
 }
-
-// 拖动进度条
-function onSeek() {
-  if (audio.value) audio.value.currentTime = currentTime.value;
+function minimize() {
+  console.log('最小化')
 }
-
-function prevTrack() { console.log('上一首'); }
-function nextTrack() { console.log('下一首'); }
-function goBack() { router.go(-1); }
-function minimize() { console.log('最小化'); }
-function toggleFullscreen() { console.log('全屏切换'); }
-function closeWindow() { console.log('关闭窗口'); }
+function toggleFullscreen() {
+  console.log('全屏切换')
+}
+function closeWindow() {
+  console.log('关闭窗口')
+}
 </script>
 
 <style scoped>
