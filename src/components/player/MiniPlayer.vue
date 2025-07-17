@@ -1,6 +1,6 @@
 <script setup>
 import { usePlayStore } from '@/stores/PlaybackHistory'
-import { ref, onUnmounted } from 'vue' // 移除 onMounted
+import { ref, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 const playStore = usePlayStore()
@@ -87,11 +87,11 @@ const getPlayModeIcon = () => {
   // 根据 playStore.currentPlayMode 返回不同图标
   switch (playStore.currentPlayMode) {
     case '顺序播放':
-      return '🔀' // 顺序播放图标
+      return '🔁' // 顺序播放图标
     case '单曲循环':
-      return '🔁' // 单曲循环图标
+      return '🔂' // 单曲循环图标
     case '随机播放':
-      return '🔂' // 随机播放图标
+      return '🔀' // 随机播放图标
     default:
       return '→' // 默认图标
   }
@@ -130,13 +130,6 @@ onUnmounted(() => {
         @touchend.passive="handleMouseUp"
         title="长按可调整进度条"
       ></div>
-      <button
-        @click.stop="playStore.getMoreList"
-        :style="{ visibility: isSeeking ? 'hidden' : 'visible' }"
-        class="control-btn"
-      >
-        ⏎
-      </button>
       <button @click.stop="playStore.playPrev" class="control-btn">⏮</button>
       <button @click.stop="playStore.togglePlay" class="control-btn">
         {{ playStore.isPlaying ? '⏸' : '⏵' }}
@@ -189,7 +182,6 @@ onUnmounted(() => {
         >
           {{ song.name }} - {{ song.artist }}
         </div>
-        <p class="get-more" @click="playStore.getMoreList()">加载更多。。。</p>
       </div>
     </transition>
   </div>

@@ -14,6 +14,7 @@ export const usePlayStore = defineStore(
     const duration = ref(0)
     const isPlaying = ref(false)
     const audioPlayer = ref(null)
+    const totalMusic = ref(0)
     const currentSongInfo = ref({
       name: '',
       artist: '',
@@ -129,7 +130,7 @@ export const usePlayStore = defineStore(
         MusicList.value = updatedMusicList // 更新 MusicList
         currentHash.value = newHash
 
-        // 调试：在获取到 URL 后尝试播放歌曲
+        // 在获取到 URL 后尝试播放歌曲
         const songIndex = MusicList.value.findIndex((item) => item.hash === newHash)
         if (songIndex !== -1) {
           console.log(
@@ -298,56 +299,22 @@ export const usePlayStore = defineStore(
     const currentPlayMode = ref(PlayMode.SEQUENCE) // 默认顺序播放
 
     // 加载更多歌曲
-    const getMoreList = async () => {
-      // 改为 async 函数
-      console.log('加载更多歌曲...')
-      // 假设有一个 API 可以根据当前 musicIds 和 page 获取更多歌曲
-      // 您需要根据实际后端 API 来实现这个逻辑
-      try {
-        // 示例：假设您有一个 API 叫做 getMoreSongsApi，它接受 musicIds 和 page 参数
-        // const response = await getMoreSongsApi(musicIds.value, page.value + 1);
-        // if (response && response.data && response.data.songs) {
-        //   MusicList.value.push(...response.data.songs);
-        //   page.value++; // 更新页码
-        //   console.log('已加载更多歌曲，当前歌单数量:', MusicList.value.length);
-        // } else {
-        //   console.warn('未获取到更多歌曲或数据格式不正确。');
-        // }
-
-        // 目前使用模拟数据，请替换为实际的 API 调用
-        const newSongs = [
-          {
-            hash: 'MOCK_HASH_4',
-            name: '模拟新歌4',
-            artist: '模拟歌手4',
-            url: '',
-            cover: 'path/to/cover4.jpg',
-            lrc: '',
-          },
-          {
-            hash: 'MOCK_HASH_5',
-            name: '模拟新歌5',
-            artist: '模拟歌手5',
-            url: '',
-            cover: 'path/to/cover5.jpg',
-            lrc: '',
-          },
-          {
-            hash: 'MOCK_HASH_6',
-            name: '模拟新歌6',
-            artist: '模拟歌手6',
-            url: '',
-            cover: 'path/to/cover6.jpg',
-            lrc: '',
-          },
-        ]
-        MusicList.value.push(...newSongs)
-        page.value++ // 模拟页码增加
-        console.log('已加载更多歌曲（模拟），当前歌单数量:', MusicList.value.length)
-      } catch (error) {
-        console.error('加载更多歌曲失败:', error)
-      }
-    }
+    // const getMoreList = async () => {
+    //   // 改为 async 函数
+    //   try {
+    //     const newSongs = await getPlayListSong(musicIds.value, page.value + 1, 20) // 每次加载20首歌
+    //     console.log('获取到更多歌曲:', newSongs.data.songs)
+    //     if (newSongs && newSongs.data && newSongs.data.songs) {
+    //       page.value++ // 更新页码
+    //       MusicList.value.push(...newSongs.data.songs)
+    //       console.log('已加载更多歌曲，当前歌单数量:', MusicList.value.length)
+    //     } else {
+    //       console.warn('未获取到更多歌曲或数据格式不正确。')
+    //     }
+    //   } catch (error) {
+    //     console.error('加载更多歌曲失败:', error)
+    //   }
+    // }
 
     // 切换播放模式
     const togglePlayMode = () => {
@@ -377,6 +344,7 @@ export const usePlayStore = defineStore(
       currentSongInfo,
       musicIds,
       page,
+      totalMusic,
       setPage,
       setMusicIds,
       setMusicList,
@@ -389,7 +357,6 @@ export const usePlayStore = defineStore(
       playSong,
       playNext,
       playPrev,
-      getMoreList, // 导出新方法
       togglePlayMode, // 导出新方法
       currentPlayMode, // 导出播放模式
     }

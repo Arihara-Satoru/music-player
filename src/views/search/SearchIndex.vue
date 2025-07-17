@@ -5,9 +5,9 @@ const query = ref('')
 const musicList = ref([])
 const loading = ref(false)
 
-const page = ref(1); // 当前页码
-const pageSize = ref(20); // 每页显示的数量
-const playlistCount = ref(0);
+const page = ref(1) // 当前页码
+const pageSize = ref(20) // 每页显示的数量
+const playlistCount = ref(0)
 
 const handleSearch = async () => {
   loading.value = true
@@ -19,34 +19,44 @@ const handleSearch = async () => {
   playlistCount.value = data.total
 }
 
-watch(page, (newVal, oldVal) => {
-  handleSearch()
-}, { immediate: false }) // immediate 决定是否立即执行
+watch(
+  page,
+  () => {
+    handleSearch()
+  },
+  { immediate: false },
+) // immediate 决定是否立即执行
 
 // console.log(musicList.value)
 </script>
 
 <template>
-  <div class="animation"
+  <div
+    class="animation"
     v-loading="loading"
-    :class="musicList.length ? 'search-indexup' : 'search-index'">
+    :class="musicList.length ? 'search-indexup' : 'search-index'"
+  >
     <header class="search-header">
-      <input v-model="query"
+      <input
+        v-model="query"
         @input="onSearch"
         type="text"
         @keydown.enter="handleSearch"
         placeholder="输入内容来搜索歌曲"
-        class="search-input" />
+        class="search-input"
+      />
     </header>
-    <section class="search-results"
-      v-if="musicList.length">
+    <section class="search-results" v-if="musicList.length">
       <song-list :musicList="musicList" />
+      <PageSize
+        v-model="page"
+        :pageSize="pageSize"
+        :playlistCount="playlistCount"
+        v-if="musicList.length"
+      >
+      </PageSize>
+      <div style="height: 110px; width: 100%"></div>
     </section>
-    <PageSize v-model="page"
-      :pageSize="pageSize"
-      :playlistCount="playlistCount"
-      v-if="musicList.length">
-    </pageSize>
   </div>
 </template>
 
