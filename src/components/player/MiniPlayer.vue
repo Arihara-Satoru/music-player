@@ -3,13 +3,22 @@ import { usePlayStore } from '@/stores/PlaybackHistory'
 import { ref, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
+// 使用 Pinia store 来管理播放状态
 const playStore = usePlayStore()
+// 控制播放列表的显示/隐藏
 const showPlaylist = ref(false)
+// 标记是否正在拖动进度条
 const isSeeking = ref(false)
+// 音量控制，初始值为 0.7
 const volume = ref(0.7)
+// Vue Router 实例，用于页面导航
 const router = useRouter()
 
-// 监听 audioPlayer 变化以同步音量
+/**
+ * @function watchAudioPlayer
+ * @description 监听 playStore 中 audioPlayer 实例的变化，并同步音量滑块的值。
+ * 确保当 audioPlayer 实例被创建或更新时，音量滑块能反映当前的音量设置。
+ */
 watch(
   () => playStore.audioPlayer,
   (newPlayer) => {
@@ -19,26 +28,46 @@ watch(
       volume.value = newPlayer.volume
     }
   },
-  { immediate: true },
+  { immediate: true }, // 立即执行一次，确保初始同步
 )
 
+// 长按定时器，用于区分单击和长按
 let longPressTimer = null
+// 长按阈值（毫秒）
 const LONG_PRESS_THRESHOLD = 300
 
 // 用于存储拖动开始时的鼠标X坐标和进度条的初始宽度
 let startX = 0
 let startProgressWidth = 0
 
+/**
+ * @function formatTime
+ * @param {number} seconds - 时间（秒）。
+ * @returns {string} 格式化后的时间字符串（MM:SS）。
+ * @description 将秒数转换为“分钟:秒”的格式。
+ */
 const formatTime = (seconds) => {
   const mins = Math.floor(seconds / 60)
   const secs = Math.floor(seconds % 60)
   return `${mins}:${secs < 10 ? '0' : ''}${secs}`
 }
 
+/**
+ * @function isCurrentSong
+ * @param {object} song - 歌曲对象。
+ * @returns {boolean} 如果是当前播放歌曲则返回 true。
+ * @description 判断传入的歌曲是否是当前正在播放的歌曲。
+ */
 const isCurrentSong = (song) => {
   return song.hash === playStore.currentHash
 }
 
+/**
+ * @function handleMouseDown
+ * @param {MouseEvent|TouchEvent} e - 鼠标或触摸事件对象。
+ * @description 处理鼠标按下或触摸开始事件。
+ * 记录初始位置，并启动长按定时器，用于判断是单击还是拖动。
+ */
 const handleMouseDown = (e) => {
   // 阻止默认行为，避免文本选择等
   e.preventDefault()
@@ -50,7 +79,7 @@ const handleMouseDown = (e) => {
   // 鼠标按下时启动定时器
   longPressTimer = setTimeout(() => {
     isSeeking.value = true // 达到长按阈值，进入拖动模式
-    // 绑定全局的 mousemove 和 mouseup 事件
+    // 绑定全局的 mousemove 和 mouseup 事件，以便在拖动时捕获事件
     window.addEventListener('mousemove', handleMouseMove)
     window.addEventListener('mouseup', handleMouseUp)
     window.addEventListener('touchmove', handleMouseMove)
@@ -58,35 +87,54 @@ const handleMouseDown = (e) => {
   }, LONG_PRESS_THRESHOLD)
 }
 
+/**
+ * @function handleMouseUp
+ * @description 处理鼠标抬起或触摸结束事件。
+ * 清除长按定时器，并根据是否进入拖动模式来决定是跳转页面还是结束拖动。
+ */
 const handleMouseUp = () => {
   clearTimeout(longPressTimer) // 清除定时器
   if (!isSeeking.value) {
-    // 如果没有进入拖动模式，说明是单击，跳转页面
+    // 如果没有进入拖动模式，说明是单击，跳转到播放主页面
     router.push('/PlayIndex')
   }
   isSeeking.value = false // 结束拖动模式
-  // 移除全局的 mousemove 和 mouseup 事件监听器
+  // 移除全局的 mousemove 和 mouseup 事件监听器，防止不必要的事件触发
   window.removeEventListener('mousemove', handleMouseMove)
   window.removeEventListener('mouseup', handleMouseUp)
   window.removeEventListener('touchmove', handleMouseMove)
   window.removeEventListener('touchend', handleMouseUp)
 }
 
+/**
+ * @function handleMouseMove
+ * @param {MouseEvent|TouchEvent} e - 鼠标或触摸事件对象。
+ * @description 处理鼠标移动或触摸移动事件。
+ * 只有在拖动模式下才处理移动，根据鼠标移动距离计算新的播放进度并更新。
+ */
 const handleMouseMove = (e) => {
   if (!isSeeking.value) return // 只有在拖动模式下才处理移动
 
   const clientX = e.clientX || e.touches[0].clientX
-  const playerContainer = document.querySelector('.player-container') // 获取播放器容器
+  const playerContainer = document.querySelector('.player-container') // 获取播放器容器元素
   if (!playerContainer) return
 
   const rect = playerContainer.getBoundingClientRect() // 获取播放器容器的尺寸和位置
   const deltaX = clientX - startX // 鼠标移动的距离
-  const newProgressWidth = startProgressWidth + (deltaX / rect.width) * 100 // 计算新的进度条宽度百分比
+  // 计算新的进度条宽度百分比，基于初始进度和鼠标移动距离
+  const newProgressWidth = startProgressWidth + (deltaX / rect.width) * 100
 
-  const percent = Math.min(1, Math.max(0, newProgressWidth / 100)) // 限制在 0 到 1 之间
-  playStore.setCurrentTime(percent * playStore.duration)
+  // 将百分比限制在 0 到 1 之间，并计算新的播放时间
+  const percent = Math.min(1, Math.max(0, newProgressWidth / 100))
+  playStore.setCurrentTime(percent * playStore.duration) // 更新 Pinia store 中的播放时间
 }
 
+/**
+ * @function setVolume
+ * @param {number} val - 音量值（0到1之间）。
+ * @description 设置播放器的音量。
+ * 更新本地 volume ref，并同步到 playStore 中的 audioPlayer 实例。
+ */
 const setVolume = (val) => {
   console.log('设置音量值:', val)
   volume.value = val
@@ -99,8 +147,12 @@ const setVolume = (val) => {
   }
 }
 
+/**
+ * @function getPlayModeIcon
+ * @returns {string} 对应当前播放模式的图标。
+ * @description 根据 playStore.currentPlayMode 返回不同的播放模式图标。
+ */
 const getPlayModeIcon = () => {
-  // 根据 playStore.currentPlayMode 返回不同图标
   switch (playStore.currentPlayMode) {
     case '顺序播放':
       return '🔁' // 顺序播放图标
@@ -113,7 +165,7 @@ const getPlayModeIcon = () => {
   }
 }
 
-// 在组件卸载时确保清除所有事件监听器
+// 在组件卸载时确保清除所有事件监听器，防止内存泄漏
 onUnmounted(() => {
   clearTimeout(longPressTimer)
   window.removeEventListener('mousemove', handleMouseMove)
@@ -125,8 +177,7 @@ onUnmounted(() => {
 
 <template>
   <div class="player-container">
-    <!-- 长按后出现的进度条 -->
-    <!-- 进度条单独放置，始终在最上层 -->
+    <!-- 长按后出现的进度条，显示当前播放时间 -->
     <div
       v-show="isSeeking"
       class="seek-progress"
@@ -135,9 +186,9 @@ onUnmounted(() => {
       {{ formatTime(playStore.currentTime) }}
     </div>
 
-    <!-- 控制区域，进度条显示时隐藏 -->
+    <!-- 播放器控制区域，当拖动进度条时隐藏 -->
     <div class="player-controls" v-show="!isSeeking">
-      <!-- 非按钮区域用于长按/点击 -->
+      <!-- 非按钮区域用于长按/点击，触发页面跳转或进度条拖动 -->
       <div
         class="non-button-area"
         @mousedown="handleMouseDown"
@@ -146,12 +197,16 @@ onUnmounted(() => {
         @touchend.passive="handleMouseUp"
         title="长按可调整进度条"
       ></div>
+      <!-- 上一首按钮 -->
       <button @click.stop="playStore.playPrev" class="control-btn">⏮</button>
+      <!-- 播放/暂停按钮，根据 isPlaying 状态显示不同图标 -->
       <button @click.stop="playStore.togglePlay" class="control-btn">
         {{ playStore.isPlaying ? '⏸' : '⏵' }}
       </button>
+      <!-- 下一首按钮 -->
       <button @click.stop="playStore.playNext" class="control-btn">⏭</button>
 
+      <!-- 歌曲信息区域，包含封面和滚动歌名 -->
       <div
         class="song-info"
         @mousedown="handleMouseDown"
@@ -159,17 +214,20 @@ onUnmounted(() => {
         @touchstart.passive="handleMouseDown"
         @touchend.passive="handleMouseUp"
       >
-        <img :src="playStore.currentSongInfo.cover" alt="" />
+        <img :src="playStore.currentSongInfo.cover" alt="歌曲封面" />
         <div class="scroll-text">
           {{ playStore.currentSongInfo.name }}
         </div>
       </div>
+      <!-- 时间显示，包括当前时间和总时长 -->
       <div class="time-display" :class="{ seeking: isSeeking }">
         {{ formatTime(playStore.currentTime) }} / {{ formatTime(playStore.duration) }}
       </div>
+      <!-- 播放模式切换按钮 -->
       <button @click.stop="playStore.togglePlayMode" class="mode-btn">
         {{ getPlayModeIcon() }}
       </button>
+      <!-- 音量控制滑块 -->
       <div class="volume-control">
         <input
           type="range"
@@ -181,6 +239,7 @@ onUnmounted(() => {
           class="volume-bar"
         />
       </div>
+      <!-- 底部控制区域，包含播放列表切换按钮 -->
       <div class="bottom-controls">
         <button @click.stop="showPlaylist = !showPlaylist" class="toggle-playlist">
           {{ showPlaylist ? '▼' : '▲' }}
@@ -188,6 +247,7 @@ onUnmounted(() => {
       </div>
     </div>
 
+    <!-- 播放列表容器，通过过渡动画显示/隐藏 -->
     <transition name="playlist">
       <div class="playlist-container" v-show="showPlaylist">
         <div

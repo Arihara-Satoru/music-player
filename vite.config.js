@@ -11,6 +11,10 @@ import legacy from '@vitejs/plugin-legacy'
 // https://vite.dev/config/
 export default defineConfig({
   base: './',
+  // 定义全局变量，解决 `process is not defined` 错误
+  define: {
+    'process.env': {}, // 定义一个空对象，或者根据需要定义 'process.env.NODE_ENV': JSON.stringify('development')
+  },
   build: {
     outDir: 'dist',
     emptyOutDir: true,
@@ -31,7 +35,7 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
   server: {
@@ -39,7 +43,7 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:12345',
         changeOrigin: true,
-      }
-    }
-  }
+      },
+    },
+  },
 })
