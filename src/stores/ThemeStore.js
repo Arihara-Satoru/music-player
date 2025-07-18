@@ -13,7 +13,7 @@ export const useThemeStore = defineStore(
     // 当前主题模式：'material_you' 或 'album_cover'
     const themeMode = ref('material_you') // 默认使用 Material You
     // 从歌曲封面提取的主色调（RGB 数组）
-    const albumCoverColor = ref([255, 255, 255]) // 默认白色
+    const albumCoverColor = ref([64, 158, 255]) // 默认蓝色
     // Material You 动态配色（如果集成）
     const materialYouColor = ref([64, 158, 255]) // 默认蓝色
 
