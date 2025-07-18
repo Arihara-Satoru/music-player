@@ -17,13 +17,13 @@ const cache = require('./util/apicache').middleware;
 
 /**
  * @typedef {{
-*  server?: import('http').Server,
-* }} ExpressExtension
-*/
+ *  server?: import('http').Server,
+ * }} ExpressExtension
+ */
 
 const envPath = path.join(process.cwd(), '.env');
 if (fs.existsSync(envPath)) {
-  dotenv.config(envPath);
+  dotenv.config({ path: envPath }); // ✅ 正确
 }
 
 /**

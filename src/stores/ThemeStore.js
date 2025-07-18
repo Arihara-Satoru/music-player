@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import ColorThief from 'color-thief'
+import ColorThief from 'color-thief-browser'
 
 /**
  * @module useThemeStore
