@@ -12,6 +12,30 @@
           <el-radio label="album_cover">歌曲封面取色</el-radio>
         </el-radio-group>
       </div>
+
+      <!-- Material You 配色选择区域，仅在 themeMode 为 'material_you' 时显示 -->
+      <div
+        v-if="themeStore.themeMode === 'material_you'"
+        class="setting-item color-palette-selection"
+      >
+        <label>选择 Material You 配色：</label>
+        <div class="color-palette-list">
+          <div
+            v-for="palette in themeStore.materialYouPalettes"
+            :key="palette.name"
+            class="color-box"
+            :style="{
+              backgroundColor: `rgb(${palette.color.join(',')})`,
+              border:
+                themeStore.materialYouColor.join(',') === palette.color.join(',')
+                  ? '2px solid var(--el-color-primary)'
+                  : '1px solid #ccc',
+            }"
+            @click="themeStore.setMaterialYouColor(palette.color)"
+            :title="palette.name"
+          ></div>
+        </div>
+      </div>
     </section>
   </div>
 </template>
@@ -81,5 +105,39 @@ h1 {
 /* Element Plus Radio 按钮的自定义样式（如果需要） */
 .el-radio {
   /* 可以根据项目设计需求，在这里添加或覆盖 Element Plus Radio 的默认样式 */
+}
+
+/* Material You 配色选择区域的样式 */
+.color-palette-selection {
+  margin-top: 20px; /* 顶部外边距 */
+  flex-wrap: wrap; /* 允许换行 */
+}
+
+.color-palette-list {
+  display: flex; /* Flex 布局 */
+  gap: 10px; /* 色块间距 */
+  flex-wrap: wrap; /* 允许换行 */
+}
+
+.color-box {
+  width: 40px; /* 色块宽度 */
+  height: 40px; /* 色块高度 */
+  border-radius: 50%; /* 圆形 */
+  cursor: pointer; /* 鼠标指针样式 */
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease; /* 过渡效果 */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* 阴影 */
+  border: 1px solid #ccc; /* 默认边框 */
+}
+
+.color-box:hover {
+  transform: scale(1.1); /* 鼠标悬停时放大 */
+}
+
+/* 选中色块的样式 */
+.color-box.selected {
+  border: 2px solid var(--el-color-primary); /* 选中时边框颜色 */
+  box-shadow: 0 0 0 3px rgba(var(--el-color-primary-rgb), 0.3); /* 选中时额外阴影 */
 }
 </style>

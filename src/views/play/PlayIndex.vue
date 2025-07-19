@@ -3,15 +3,23 @@
     <!-- 头部区域：包含返回按钮和窗口控制按钮 -->
     <header class="player-header">
       <!-- 返回按钮，点击后返回上一页 -->
-      <button class="control-btn" @click="goBack">←</button>
+      <button class="control-btn back-btn" @click="goBack">
+        <i class="ri-arrow-left-line"></i>
+      </button>
       <!-- 窗口控制按钮组 -->
       <div class="window-controls">
         <!-- 最小化窗口按钮 -->
-        <button class="control-btn" @click="minimize">—</button>
+        <button class="control-btn" @click="minimize">
+          <i class="ri-subtract-line"></i>
+        </button>
         <!-- 全屏切换按钮 -->
-        <button class="control-btn" @click="toggleFullscreen">[]</button>
+        <button class="control-btn" @click="toggleFullscreen">
+          <i class="ri-fullscreen-line"></i>
+        </button>
         <!-- 关闭窗口按钮 -->
-        <button class="control-btn" @click="closeWindow">×</button>
+        <button class="control-btn close-btn" @click="closeWindow">
+          <i class="ri-close-line"></i>
+        </button>
       </div>
     </header>
 
@@ -21,6 +29,11 @@
       <div class="cover-container">
         <!-- 音乐封面图片，从 Pinia store 获取当前歌曲的封面 URL -->
         <img :src="coverUrl" alt="Music Cover" class="music-cover" />
+        <!-- 歌曲信息，在封面下方显示 -->
+        <div class="song-details-overlay">
+          <div class="song-name">{{ playStore.currentSongInfo.name }}</div>
+          <div class="artist-name">{{ playStore.currentSongInfo.artist }}</div>
+        </div>
       </div>
       <!-- 歌词容器 -->
       <div class="lyrics-container" ref="lyricsContainerRef">
@@ -37,12 +50,6 @@
 
     <!-- 底部区域：完整的播放器控制组件 -->
     <footer class="player-footer">
-      <!-- 歌曲信息 -->
-      <div class="song-details">
-        <div class="song-name">{{ playStore.currentSongInfo.name }}</div>
-        <div class="artist-name">{{ playStore.currentSongInfo.artist }}</div>
-      </div>
-
       <!-- 播放进度条 -->
       <div class="progress-container">
         <span class="time-display">{{ formatTime(playStore.currentTime) }}</span>
@@ -60,21 +67,26 @@
 
       <!-- 播放控制按钮 -->
       <div class="controls">
-        <button @click="playStore.playPrev" class="control-btn">⏮</button>
-        <button @click="playStore.togglePlay" class="control-btn">
-          {{ playStore.isPlaying ? '⏸' : '⏵' }}
+        <button @click="playStore.playPrev" class="control-btn player-control-btn">
+          <i class="ri-skip-back-fill"></i>
         </button>
-        <button @click="playStore.playNext" class="control-btn">⏭</button>
-        <button @click="playStore.togglePlayMode" class="control-btn">
-          {{ getPlayModeIcon() }}
+        <button @click="playStore.togglePlay" class="control-btn play-pause-btn">
+          <i :class="playStore.isPlaying ? 'ri-pause-fill' : 'ri-play-fill'"></i>
+        </button>
+        <button @click="playStore.playNext" class="control-btn player-control-btn">
+          <i class="ri-skip-forward-fill"></i>
+        </button>
+        <button @click="playStore.togglePlayMode" class="control-btn player-control-btn">
+          <i :class="getPlayModeIcon()"></i>
         </button>
         <!-- 音量控制 -->
         <div class="volume-control">
+          <i class="ri-volume-up-fill volume-icon"></i>
           <input
             type="range"
             min="0"
             max="1"
-            step="0.1"
+            step="0.01"
             v-model="volume"
             @input="setVolume(volume)"
             class="volume-bar"
@@ -88,23 +100,34 @@
 <script setup>
 import router from '@/router' // 引入 Vue Router 实例
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue' // 引入 Vue 的 ref, computed, onMounted, onUnmounted, watch 函数
-// 移除 MiniPlayer 组件的直接引入，其功能将集成到 PlayIndex 自身
 import { usePlayStore } from '@/stores/PlaybackHistory' // 引入 Pinia 的 PlayStore
+import { useThemeStore } from '@/stores/ThemeStore' // 引入 Pinia 的 ThemeStore
 
 // 使用 Pinia 的 PlayStore 来获取和管理播放状态
 const playStore = usePlayStore()
+// 使用 Pinia 的 ThemeStore 来管理主题
+const themeStore = useThemeStore()
 
 // 音乐封面 URL，初始化时从 PlayStore 获取当前歌曲的封面，如果为空则使用默认封面
-const coverUrl = ref(playStore.currentSongInfo.cover || 'path/to/default-cover.jpg')
+const coverUrl = ref(playStore.currentSongInfo.cover || '/default-cover.jpg') // 使用绝对路径
 
 /**
- * @function playStore.$subscribe
- * @description 订阅 PlayStore 中状态的变化。
- * 当 currentSongInfo 发生变化时，更新本地的 coverUrl ref，确保封面同步显示。
+ * @function watch currentSongInfo
+ * @description 监听 PlayStore 中 currentSongInfo 的变化。
+ * 当歌曲信息变化时，更新本地的 coverUrl ref，并触发从封面提取颜色。
  */
-playStore.$subscribe((mutation, state) => {
-  coverUrl.value = state.currentSongInfo.cover || 'path/to/default-cover.jpg'
-})
+watch(
+  () => playStore.currentSongInfo,
+  (newSongInfo) => {
+    const newCoverUrl = newSongInfo.cover || '/default-cover.jpg'
+    coverUrl.value = newCoverUrl
+    // 如果当前主题模式是专辑封面取色，则提取颜色
+    if (themeStore.themeMode === 'album_cover') {
+      themeStore.extractColorFromImage(newCoverUrl)
+    }
+  },
+  { immediate: true, deep: true }, // 立即执行一次，并深度监听对象变化
+)
 
 /**
  * @function goBack
@@ -190,13 +213,13 @@ const setVolume = (val) => {
 const getPlayModeIcon = () => {
   switch (playStore.currentPlayMode) {
     case '顺序播放':
-      return '🔁' // 顺序播放图标
+      return 'ri-repeat-line' // 顺序播放图标
     case '单曲循环':
-      return '🔂' // 单曲循环图标
+      return 'ri-repeat-one-line' // 单曲循环图标
     case '随机播放':
-      return '🔀' // 随机播放图标
+      return 'ri-shuffle-line' // 随机播放图标
     default:
-      return '→' // 默认图标
+      return 'ri-arrow-right-line' // 默认图标
   }
 }
 
@@ -244,18 +267,20 @@ watch(
       currentLyricIndex.value = index
       // 滚动歌词到视图中央
       if (lyricsContainerRef.value) {
+        // 确保在访问 activeLyricElement 之前它已经被渲染
         const activeLyricElement = lyricsContainerRef.value.querySelector('.active-lyric')
         if (activeLyricElement) {
           const containerHeight = lyricsContainerRef.value.clientHeight
           const elementOffsetTop = activeLyricElement.offsetTop
           const elementHeight = activeLyricElement.clientHeight
-          // 滚动到元素在容器中间的位置
+          // 计算目标滚动位置，使当前歌词居中
           lyricsContainerRef.value.scrollTop =
             elementOffsetTop - containerHeight / 2 + elementHeight / 2
         }
       }
     }
   },
+  { immediate: true }, // 立即执行一次，确保初始同步
 )
 
 /**
@@ -267,8 +292,16 @@ function closeWindow() {
   // 实际的关闭窗口逻辑可能需要与 Electron 或其他桌面应用框架集成
 }
 
+// 在组件挂载时，如果当前主题模式是专辑封面取色，且有歌曲封面，则提取颜色
+onMounted(() => {
+  if (themeStore.themeMode === 'album_cover' && playStore.currentSongInfo.cover) {
+    themeStore.extractColorFromImage(playStore.currentSongInfo.cover)
+  }
+})
+
 // 在组件挂载时，如果当前有歌曲，确保歌词滚动到正确位置
 onMounted(() => {
+  // 初始加载时，如果歌词存在，确保滚动到当前时间对应的歌词
   if (playStore.currentHash && lyrics.value.length > 0) {
     // 延迟执行以确保 DOM 渲染完成
     setTimeout(() => {
@@ -292,15 +325,19 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* 引入 RemixIcon 样式 */
+@import 'https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css';
+
 /* 音乐播放器容器的整体布局 */
 .music-player-container {
   display: flex;
   flex-direction: column; /* 垂直布局 */
   width: 100vw; /* 宽度占满视口 */
   height: 100vh; /* 高度占满视口 */
-  background-color: #f5f5f5; /* 背景色 */
-  color: #333; /* 字体颜色 */
-  font-family: sans-serif; /* 字体 */
+  background-color: var(--md-sys-color-background); /* 使用 Material You 背景色 */
+  color: var(--md-sys-color-on-background); /* 使用 Material You 字体颜色 */
+  font-family: 'Roboto', sans-serif; /* 字体 */
+  overflow: hidden; /* 防止滚动条 */
 }
 
 /* 头部样式 */
@@ -308,134 +345,210 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between; /* 元素两端对齐 */
   align-items: center; /* 垂直居中 */
-  padding: 12px; /* 内边距 */
-  background-color: #eaeaea; /* 背景色 */
+  padding: 12px 20px; /* 内边距 */
+  background-color: var(--md-sys-color-surface-variant); /* 使用 Material You 表面变体色 */
+  color: var(--md-sys-color-on-surface-variant);
+  -webkit-app-region: drag; /* 允许拖动窗口 */
 }
 
 /* 窗口控制按钮的间距 */
-.window-controls .control-btn {
-  margin-left: 10px;
+.window-controls {
+  display: flex;
+  gap: 8px;
+}
+
+/* 控制按钮通用样式 */
+.control-btn {
+  background: none;
+  border: none;
+  color: var(--md-sys-color-on-surface-variant); /* 使用 Material You 字体颜色 */
+  font-size: 20px; /* 增大按钮图标 */
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%; /* 圆形按钮 */
+  transition:
+    background-color 0.2s ease-in-out,
+    transform 0.2s ease-in-out;
+  -webkit-app-region: no-drag; /* 禁止拖动 */
+}
+
+.control-btn:hover {
+  background-color: rgba(var(--color-primary-rgb), 0.1); /* 悬停背景色 */
+  transform: scale(1.1); /* 悬停放大效果 */
+}
+
+.control-btn:active {
+  background-color: rgba(var(--color-primary-rgb), 0.2); /* 点击背景色 */
+}
+
+.control-btn:focus {
+  outline: none;
+}
+
+.back-btn {
+  font-size: 24px; /* 返回按钮更大 */
+}
+
+.close-btn {
+  color: var(--md-sys-color-error); /* 关闭按钮使用错误色 */
+}
+
+.close-btn:hover {
+  background-color: rgba(var(--md-sys-color-error-rgb), 0.1);
 }
 
 /* 中部样式 */
 .player-main {
   flex: 1; /* 占据剩余空间 */
   display: flex; /* 水平布局 */
-  padding: 20px; /* 内边距 */
+  padding: 30px; /* 内边距 */
+  gap: 40px; /* 封面和歌词之间的间距 */
+  align-items: center; /* 垂直居中对齐 */
 }
 
 /* 封面容器样式 */
 .cover-container {
   flex: 1; /* 占据一部分空间 */
   display: flex;
-  justify-content: center; /* 水平居中 */
-  align-items: center; /* 垂直居中 */
+  flex-direction: column; /* 垂直布局 */
+  justify-content: center; /* 垂直居中 */
+  align-items: center; /* 水平居中 */
+  position: relative; /* 用于定位歌曲信息 */
+  padding: 20px; /* 内边距 */
 }
 
 /* 音乐封面图片样式 */
 .music-cover {
-  max-width: 100%; /* 最大宽度 */
-  max-height: 100%; /* 最大高度 */
-  border: 2px solid #ccc; /* 边框 */
+  width: 80%; /* 封面宽度 */
+  max-width: 350px; /* 最大宽度 */
+  aspect-ratio: 1/1; /* 保持正方形 */
+  border-radius: 12px; /* 圆角 */
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); /* 阴影效果 */
+  border: 2px solid var(--md-sys-color-outline); /* 边框使用 Material You 轮廓色 */
+  object-fit: cover; /* 确保图片填充容器 */
+}
+
+/* 歌曲信息叠加层 */
+.song-details-overlay {
+  text-align: center;
+  margin-top: 20px; /* 与封面的间距 */
+  color: var(--md-sys-color-on-background);
+}
+
+.song-name {
+  font-size: 28px;
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: var(--md-sys-color-on-background);
+}
+
+.artist-name {
+  font-size: 18px;
+  color: var(--md-sys-color-on-background);
+  opacity: 0.8;
 }
 
 /* 歌词容器样式 */
 .lyrics-container {
-  flex: 2; /* 占据更多空间 */
+  flex: 1.5; /* 占据更多空间 */
+  height: 100%; /* 确保容器有高度 */
   overflow-y: auto; /* 垂直滚动 */
-  padding-left: 20px; /* 左侧内边距 */
-  line-height: 1.8; /* 调整行高，使歌词更易读 */
-  font-size: 18px; /* 歌词字体大小 */
-  color: #555; /* 歌词颜色 */
-  text-align: center; /* 歌词居中显示 */
+  padding-right: 20px; /* 右侧内边距 */
+  line-height: 2.2; /* 调整行高，使歌词更易读 */
+  font-size: 20px; /* 歌词字体大小 */
+  color: var(--md-sys-color-on-surface-variant); /* 歌词颜色 */
+  text-align: left; /* 歌词左对齐 */
   scroll-behavior: smooth; /* 平滑滚动 */
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    black 10%,
+    black 90%,
+    transparent
+  ); /* 渐变遮罩 */
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    black 10%,
+    black 90%,
+    transparent
+  ); /* Webkit 兼容性 */
 }
 
 .lyrics-container p {
-  margin: 10px 0; /* 歌词行间距 */
+  margin: 0; /* 移除默认段落外边距 */
+  padding: 5px 0; /* 歌词行内边距 */
   transition:
-    color 0.3s,
-    font-size 0.3s; /* 颜色和字体大小过渡效果 */
+    color 0.3s ease,
+    font-size 0.3s ease,
+    font-weight 0.3s ease; /* 颜色、字体大小和字重过渡效果 */
 }
 
 .lyrics-container .active-lyric {
-  color: #333; /* 高亮歌词颜色 */
-  font-size: 22px; /* 高亮歌词字体大小 */
+  color: var(--md-sys-color-primary); /* 高亮歌词颜色使用主色调 */
+  font-size: 24px; /* 高亮歌词字体大小 */
   font-weight: bold; /* 高亮歌词加粗 */
 }
 
 /* 底部播放器控制区域样式 */
 .player-footer {
-  padding: 15px 20px; /* 内边距 */
-  background-color: #eaeaea; /* 背景色 */
+  padding: 20px 30px; /* 内边距 */
+  background-color: var(--md-sys-color-surface-variant); /* 使用 Material You 表面变体色 */
+  color: var(--md-sys-color-on-surface-variant);
   display: flex;
   flex-direction: column; /* 垂直布局 */
   align-items: center; /* 水平居中 */
-  gap: 10px; /* 元素间距 */
-}
-
-/* 歌曲信息样式 */
-.song-details {
-  text-align: center;
-  margin-bottom: 10px;
-}
-
-.song-name {
-  font-size: 24px;
-  font-weight: bold;
-  color: #333;
-}
-
-.artist-name {
-  font-size: 16px;
-  color: #666;
+  gap: 15px; /* 元素间距 */
 }
 
 /* 进度条容器样式 */
 .progress-container {
   display: flex;
   align-items: center;
-  width: 80%; /* 进度条宽度 */
-  max-width: 600px;
-  gap: 10px;
-  margin-bottom: 15px;
+  width: 90%; /* 进度条宽度 */
+  max-width: 700px;
+  gap: 15px;
 }
 
 /* 进度条滑块样式 */
 .progress-bar {
   flex-grow: 1;
-  height: 6px;
-  background: #ddd;
+  height: 8px; /* 进度条高度 */
+  background: var(--md-sys-color-outline-variant); /* 进度条背景色 */
   appearance: none;
   -webkit-appearance: none; /* 移除默认样式 */
-  border-radius: 3px;
+  border-radius: 4px;
   cursor: pointer;
+  outline: none; /* 移除焦点轮廓 */
 }
 
 .progress-bar::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 16px;
-  height: 16px;
+  width: 18px; /* 滑块大小 */
+  height: 18px;
   border-radius: 50%;
-  background: #409eff; /* 蓝色滑块 */
+  background: var(--md-sys-color-primary); /* 滑块颜色使用主色调 */
   cursor: pointer;
   margin-top: -5px; /* 调整滑块位置 */
-  box-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 5px rgba(var(--color-primary-rgb), 0.5);
+  transition: background-color 0.2s ease;
 }
 
 .progress-bar::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  background: #409eff;
+  background: var(--md-sys-color-primary);
   cursor: pointer;
+  box-shadow: 0 0 5px rgba(var(--color-primary-rgb), 0.5);
+  transition: background-color 0.2s ease;
 }
 
 /* 时间显示样式 */
 .time-display {
-  font-size: 14px;
-  color: #666;
-  width: 40px; /* 固定宽度，防止跳动 */
+  font-size: 15px;
+  color: var(--md-sys-color-on-surface-variant);
+  width: 50px; /* 固定宽度，防止跳动 */
   text-align: center;
 }
 
@@ -443,62 +556,63 @@ onUnmounted(() => {
 .controls {
   display: flex;
   align-items: center;
-  gap: 20px; /* 按钮间距 */
+  gap: 30px; /* 按钮间距 */
 }
 
-/* 控制按钮通用样式 */
-.control-btn {
-  background: none;
-  border: none;
-  color: #333;
-  font-size: 28px; /* 增大按钮图标 */
-  cursor: pointer;
-  padding: 5px;
-  transition: transform 0.2s ease-in-out;
+/* 播放控制按钮通用样式 */
+.player-control-btn {
+  font-size: 32px; /* 增大按钮图标 */
 }
 
-.control-btn:hover {
-  transform: scale(1.1); /* 悬停放大效果 */
-}
-
-.control-btn:focus {
-  outline: none;
+.play-pause-btn {
+  font-size: 48px; /* 播放/暂停按钮更大 */
+  color: var(--md-sys-color-primary); /* 播放/暂停按钮使用主色调 */
 }
 
 /* 音量控制样式 */
 .volume-control {
   display: flex;
   align-items: center;
-  width: 120px; /* 音量条宽度 */
-  margin-left: 30px; /* 与播放控制按钮的间距 */
+  width: 150px; /* 音量条宽度 */
+  margin-left: 40px; /* 与播放控制按钮的间距 */
+  gap: 10px;
+}
+
+.volume-icon {
+  font-size: 24px;
+  color: var(--md-sys-color-on-surface-variant);
 }
 
 .volume-bar {
   flex-grow: 1;
-  height: 4px;
-  background: #ddd;
+  height: 6px; /* 音量条高度 */
+  background: var(--md-sys-color-outline-variant);
   appearance: none;
   -webkit-appearance: none;
-  border-radius: 2px;
+  border-radius: 3px;
   cursor: pointer;
+  outline: none;
 }
 
 .volume-bar::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 12px;
-  height: 12px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  background: #409eff;
+  background: var(--md-sys-color-primary);
   cursor: pointer;
-  margin-top: -4px;
-  box-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
+  margin-top: -5px;
+  box-shadow: 0 0 4px rgba(var(--color-primary-rgb), 0.5);
+  transition: background-color 0.2s ease;
 }
 
 .volume-bar::-moz-range-thumb {
-  width: 12px;
-  height: 12px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  background: #409eff;
+  background: var(--md-sys-color-primary);
   cursor: pointer;
+  box-shadow: 0 0 4px rgba(var(--color-primary-rgb), 0.5);
+  transition: background-color 0.2s ease;
 }
 </style>
