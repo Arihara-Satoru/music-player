@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const express = require('express');
-const decode = require('safe-decode-uri-component');
+const decode = decodeURIComponent; // 使用内置的 decodeURIComponent 函数
 const { cookieToJson } = require('./util/util');
 const { createRequest } = require('./util/request');
 const dotenv = require('dotenv');
@@ -85,6 +85,7 @@ async function consturctServer(moduleDefs) {
       if (crack < 1 || crack === pair.length - 1) {
         return;
       }
+      // 使用内置的 decodeURIComponent 函数解码 cookie 名称和值
       req.cookies[decode(pair.slice(0, crack)).trim()] = decode(pair.slice(crack + 1)).trim();
     });
     next();
@@ -130,8 +131,10 @@ async function consturctServer(moduleDefs) {
 
   for (const moduleDef of moduleDefinitions) {
     app.use(moduleDef.route, async (req, res) => {
+      // 遍历请求的查询参数和请求体，处理 cookie 字符串
       [req.query, req.body].forEach((item) => {
-        if (typeof item.cookie === 'string') {
+        // 确保 item 存在且 item.cookie 是一个字符串类型
+        if (item && typeof item.cookie === 'string') {
           item.cookie = cookieToJson(decode(item.cookie));
         }
       });
@@ -148,6 +151,7 @@ async function consturctServer(moduleDefs) {
           return createRequest(config);
         });
 
+        // 记录成功请求的原始 URL，使用 decodeURIComponent 解码
         console.log('[OK]', decode(req.originalUrl));
 
         const cookies = moduleResponse.cookie;
@@ -175,6 +179,7 @@ async function consturctServer(moduleDefs) {
         res.header(moduleResponse.headers).status(moduleResponse.status).send(moduleResponse.body);
       } catch (e) {
         const moduleResponse = e;
+        // 记录错误请求的原始 URL，使用 decodeURIComponent 解码
         console.log('[ERR]', decode(req.originalUrl), {
           status: moduleResponse.status,
           body: moduleResponse.body,
