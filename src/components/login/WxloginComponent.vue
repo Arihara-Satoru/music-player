@@ -1,24 +1,19 @@
 <template>
   <div class="wx-login-container">
     <!-- 二维码显示区域 -->
-    <div v-if="!loginSuccess"
-      class="qr-code-container">
-      <div v-if="qrCodeData"
-        class="qr-code-wrapper">
-        <img :src="qrCodeData.qrCodeBase64"
-          alt="微信登录二维码">
+    <div v-if="!loginSuccess" class="qr-code-container">
+      <div v-if="qrCodeData" class="qr-code-wrapper">
+        <img :src="qrCodeData.qrCodeBase64" alt="微信登录二维码" />
         <p class="tips">请使用微信扫描二维码登录</p>
         <p class="status">{{ statusText }}</p>
       </div>
-      <div v-else
-        class="loading">
+      <div v-else class="loading">
         <span>正在生成二维码...</span>
       </div>
     </div>
 
     <!-- 登录成功显示 -->
-    <div v-else
-      class="login-success">
+    <div v-else class="login-success">
       <p>登录成功！</p>
     </div>
   </div>
@@ -56,11 +51,10 @@ const generateQRCode = async () => {
     // 构造组件需要的数据结构
     qrCodeData.value = {
       uuid: res.uuid,
-      qrCodeBase64: `data:image/png;base64,${res.qrcode.qrcodebase64}`
+      qrCodeBase64: `data:image/png;base64,${res.qrcode.qrcodebase64}`,
     }
 
     startPolling(res.uuid)
-
   } catch (error) {
     console.error('生成二维码失败:', error)
     statusText.value = `生成二维码失败: ${error.message}`
@@ -115,7 +109,7 @@ const startPolling = (uuid) => {
           clearInterval(pollTimer)
           setTimeout(generateQRCode, 2000)
           break
-        case '485':  // 添加你遇到的新状态码处理
+        case '485': // 添加你遇到的新状态码处理
           statusText.value = '等待授权...'
           break
         default:
@@ -146,9 +140,10 @@ const handleLoginSuccess = async (wxCode) => {
   emit('login-success', wxCode)
 }
 
-// 组件挂载时生成二维码
+// 组件挂载时清理定时器，但不自动初始化
 onMounted(() => {
-  generateQRCode()
+  // 确保在组件挂载时清理任何可能残留的定时器
+  clearInterval(pollTimer)
 })
 
 // 组件卸载前清除定时器
@@ -158,6 +153,18 @@ onBeforeUnmount(() => {
 
 // 定义事件
 const emit = defineEmits(['login-success'])
+
+// 暴露给父组件的方法
+defineExpose({
+  generateQRCode, // 暴露生成二维码的方法
+  resetState: () => {
+    // 暴露一个重置状态的方法
+    qrCodeData.value = null
+    loginSuccess.value = false
+    statusText.value = '等待扫描'
+    clearInterval(pollTimer)
+  },
+})
 </script>
 
 <style scoped>

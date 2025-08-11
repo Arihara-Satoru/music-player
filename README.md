@@ -99,3 +99,14 @@ npm start
 ## 许可证
 
 MIT协议
+
+## 界面预览
+
+![登录界面](public/login.png)
+![主页](public/home.png)
+![搜索页](public/search.png)
+![搜索结果页](public/searchindex.png)
+![歌单页](public/musiclist.png)
+![设置页](public/setting.png)
+![播放页](public/playindex.png)
+![其他界面](public/other.png)

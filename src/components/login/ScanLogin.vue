@@ -1,44 +1,31 @@
 <template>
   <div class="qr-login-container">
     <!-- 二维码显示区域 -->
-    <div v-if="!loginSuccess"
-      class="qr-code-box">
-      <div v-if="qrCodeData"
-        class="qr-code-wrapper">
-        <img v-if="qrCodeData.qrimg"
-          :src="qrCodeData.qrimg"
-          alt="登录二维码">
-        <div v-else
-          class="qr-code-placeholder">
+    <div v-if="!loginSuccess" class="qr-code-box">
+      <div v-if="qrCodeData" class="qr-code-wrapper">
+        <img v-if="qrCodeData.qrimg" :src="qrCodeData.qrimg" alt="登录二维码" />
+        <div v-else class="qr-code-placeholder">
           <!-- 这里可以使用第三方库渲染二维码 -->
-          <img :src="qrCodeData.base64"
-            alt="">
+          <img :src="qrCodeData.base64" alt="" />
         </div>
         <div class="status-info">
           <p :class="statusClass">{{ statusText }}</p>
-          <p v-if="countdown > 0"
-            class="countdown">二维码有效期: {{ countdown }}秒</p>
+          <p v-if="countdown > 0" class="countdown">二维码有效期: {{ countdown }}秒</p>
         </div>
       </div>
-      <div v-else
-        class="loading">
+      <div v-else class="loading">
         <p>正在生成二维码...</p>
       </div>
     </div>
 
     <!-- 登录成功显示 -->
-    <div v-else
-      class="login-success">
+    <div v-else class="login-success">
       <p>登录成功！</p>
       <!-- <button @click="handleContinue">继续</button> -->
     </div>
 
     <!-- 刷新按钮 -->
-    <button v-if="showRefresh"
-      @click="initQRLogin"
-      class="refresh-btn">
-      刷新二维码
-    </button>
+    <button v-if="showRefresh" @click="initQRLogin" class="refresh-btn">刷新二维码</button>
   </div>
 </template>
 
@@ -185,9 +172,11 @@ const resetState = () => {
   currentKey.value = ''
 }
 
-// 组件挂载时初始化
+// 组件挂载时清理定时器，但不自动初始化
 onMounted(() => {
-  initQRLogin()
+  // 确保在组件挂载时清理任何可能残留的定时器
+  clearInterval(pollTimer)
+  clearInterval(countdownTimer)
 })
 
 // 组件卸载前清理
@@ -198,6 +187,12 @@ onBeforeUnmount(() => {
 
 // 定义事件
 const emit = defineEmits(['QRlogin-success'])
+
+// 暴露给父组件的方法
+defineExpose({
+  initQRLogin,
+  resetState, // 也暴露resetState，方便父组件在需要时重置
+})
 </script>
 
 <style scoped>
@@ -205,7 +200,6 @@ const emit = defineEmits(['QRlogin-success'])
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 20px;
 }
 
 .qr-code-box {
@@ -227,10 +221,6 @@ const emit = defineEmits(['QRlogin-success'])
   justify-content: center;
   border: 1px dashed #ccc;
   margin: 0 auto;
-}
-
-.status-info {
-  margin-top: 15px;
 }
 
 .status-waiting {
@@ -267,17 +257,14 @@ const emit = defineEmits(['QRlogin-success'])
 
 .login-success {
   text-align: center;
-  padding: 20px;
 }
 
 .login-success p {
   color: #52c41a;
   font-size: 18px;
-  margin-bottom: 15px;
 }
 
 .refresh-btn {
-  margin-top: 15px;
   padding: 8px 16px;
   background-color: #1890ff;
   color: white;

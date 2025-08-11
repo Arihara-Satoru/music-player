@@ -10,12 +10,12 @@ const checkBackendHealth = async () => {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       await axios.get(service.defaults.baseURL + healthEndpoint, {
-        timeout: 1000
+        timeout: 1000,
       })
       return true
     } catch {
       if (attempt < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, delay))
+        await new Promise((resolve) => setTimeout(resolve, delay))
       }
     }
   }
@@ -24,7 +24,7 @@ const checkBackendHealth = async () => {
 
 const service = axios.create({
   baseURL: 'http://localhost:12345',
-  timeout: 10000,
+  timeout: 30000, // 增加超时时间到30秒
   withCredentials: true, // 关键修改：启用跨域凭据传递
 })
 
@@ -53,7 +53,7 @@ service.interceptors.request.use(
   },
   (error) => {
     return Promise.reject(error)
-  }
+  },
 )
 
 // 响应拦截器
@@ -92,16 +92,20 @@ service.interceptors.response.use(
           ElMessage.error(`请求失败: ${error.message}`)
       }
     } else if (error.request) {
+      // 请求已发出但没有收到响应
       if (error.message.includes('Network Error') || error.message.includes('ECONNREFUSED')) {
-        ElMessage.info('等待后端启动')
+        ElMessage.info('等待后端启动或网络连接被拒绝')
+      } else if (error.message.includes('timeout')) {
+        ElMessage.error('请求超时，请检查网络或稍后再试')
       } else {
         ElMessage.error('网络异常，请检查连接')
       }
     } else {
+      // 在设置请求时发生了一些事情，触发了一个错误
       ElMessage.error('请求配置错误')
     }
     return Promise.reject(error)
-  }
+  },
 )
 
 export default service

@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, onMounted, watch } from 'vue'
 import { getMusicDetail, searchLyric, getLyric, playSong as playSongApi } from '@/api/PlaySong'
 import { useThemeStore } from '@/stores/ThemeStore' // 引入 ThemeStore
+import { ElMessage } from 'element-plus' // 引入 Element Plus 的消息提示组件
 
 /**
  * @module usePlayStore
@@ -162,9 +163,19 @@ export const usePlayStore = defineStore(
         if (!res) {
           throw new Error('playSong 返回数据格式不正确')
         }
-        if (!res.backupUrl?.length) {
-          console.warn('playSong 返回的数据中缺少 backupUrl')
-          return
+        // 尝试获取歌曲URL，优先使用 backupUrl，如果不存在则尝试 url 字段
+        let songUrl = ''
+        if (res.backupUrl && res.backupUrl.length > 0) {
+          songUrl = res.backupUrl[0]
+        } else if (res.url) {
+          // 假设 res 中可能存在一个名为 'url' 的字段
+          songUrl = res.url
+        }
+
+        if (!songUrl) {
+          console.warn('playSong 返回的数据中缺少可用的播放URL (backupUrl 或 url)')
+          ElMessage.error('暂无该歌曲版权') // 显示错误提示
+          return // 如果没有可用的URL，则直接返回，不进行后续操作
         }
 
         // 搜索并获取歌词
@@ -180,7 +191,7 @@ export const usePlayStore = defineStore(
           if (item.hash === newHash) {
             return {
               ...item,
-              url: res?.backupUrl?.[0] || '',
+              url: songUrl, // 使用获取到的 songUrl
               lrc: decodeContent,
             }
           }
@@ -315,16 +326,23 @@ export const usePlayStore = defineStore(
 
         isPlaying.value = true // 设置播放状态为播放中
         currentHash.value = song.hash // 更新当前歌曲哈希
+        // 处理歌曲封面 URL，将 64 替换为 512 以获取更高分辨率的图片
+        const processedCover = song.cover
+          ? song.cover.replace('/stdmusic/64/', '/stdmusic/512/')
+          : ''
+
         // 更新当前歌曲信息
         currentSongInfo.value = {
           name: song.name,
           artist: song.artist,
-          cover: song.cover,
+          cover: processedCover, // 使用处理后的封面 URL
           url: song.url,
+          lrc: song.lrc,
         }
         // 提取歌曲封面颜色并更新主题 store
-        if (song.cover) {
-          themeStore.extractColorFromImage(song.cover)
+        if (processedCover) {
+          // 使用处理后的封面 URL 进行颜色提取
+          themeStore.extractColorFromImage(processedCover)
         }
       }
     }

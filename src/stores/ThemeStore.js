@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import ColorThief from 'color-thief-browser'
-import { argbFromRgb, themeFromSourceColor, hexFromArgb } from '@material/material-color-utilities'
+// import { argbFromRgb, themeFromSourceColor, hexFromArgb } from '@material/material-color-utilities' // 暂时注释，如果 Material You 动态配色功能需要，再启用
 
 /**
  * @module useThemeStore
@@ -83,68 +82,12 @@ export const useThemeStore = defineStore(
      * @description 从给定的图片 URL 中提取主色调，并更新 albumCoverColor。
      * 使用 ColorThief 库进行颜色提取。
      */
-    const extractColorFromImage = async (imageUrl) => {
-      if (!imageUrl) {
-        console.warn('未提供图片 URL，无法提取颜色。')
-        return
-      }
-      try {
-        const img = new Image()
-        img.crossOrigin = 'Anonymous' // 解决跨域问题
-        img.src = imageUrl
-        img.onload = () => {
-          try {
-            const colorThief = new ColorThief()
-            const dominantColor = colorThief.getColor(img) // dominantColor 是 [R, G, B] 数组
-
-            // 验证 dominantColor 是否有效
-            if (
-              !Array.isArray(dominantColor) ||
-              dominantColor.length !== 3 ||
-              !dominantColor.every((c) => typeof c === 'number' && c >= 0 && c <= 255)
-            ) {
-              throw new Error('ColorThief 提取的颜色无效。')
-            }
-
-            setAlbumCoverColor(dominantColor) // 设置专辑封面提取的颜色
-
-            // 使用提取的颜色作为 Material You 的种子颜色
-            const argbColor = argbFromRgb(dominantColor[0], dominantColor[1], dominantColor[2])
-            const theme = themeFromSourceColor(argbColor)
-
-            // 将 Material You 生成的主色调设置为 materialYouColor
-            // 这里我们使用 primary 颜色作为 Material You 的主色调
-            const primaryArgb = theme.schemes.light.primary
-            console.log('Material You primary ARGB:', primaryArgb) // 添加日志
-            const primaryColorHex = hexFromArgb(primaryArgb)
-            // 将十六进制颜色转换为 RGB 数组
-            const r = parseInt(primaryColorHex.slice(1, 3), 16)
-            const g = parseInt(primaryColorHex.slice(3, 5), 16)
-            const b = parseInt(primaryColorHex.slice(5, 7), 16)
-            setMaterialYouColor([r, g, b])
-
-            console.log('从封面提取颜色并生成 Material You 主题:', dominantColor, [r, g, b])
-          } catch (error) {
-            console.error('ColorThief 提取颜色或 Material You 生成失败:', error)
-            console.error('错误详情:', error) // 打印完整错误对象
-            // 提取失败时，设置一个默认颜色
-            setAlbumCoverColor([255, 255, 255])
-            setMaterialYouColor([64, 158, 255]) // 恢复 Material You 默认色
-          }
-        }
-        img.onerror = (error) => {
-          console.error('图片加载失败，无法提取颜色:', error)
-          console.error('错误详情:', error) // 打印完整错误对象
-          // 图片加载失败时，设置一个默认颜色
-          setAlbumCoverColor([255, 255, 255])
-          setMaterialYouColor([64, 158, 255]) // 恢复 Material You 默认色
-        }
-      } catch (error) {
-        console.error('提取颜色过程中发生错误:', error)
-        console.error('错误详情:', error) // 打印完整错误对象
-        setAlbumCoverColor([255, 255, 255])
-        setMaterialYouColor([64, 158, 255]) // 恢复 Material You 默认色
-      }
+    const extractColorFromImage = async () => {
+      // 移除 imageUrl 参数
+      console.warn('图片颜色提取功能已禁用。')
+      // 无论如何都设置一个默认颜色，以确保主题颜色不会缺失
+      setAlbumCoverColor([255, 255, 255]) // 默认白色
+      setMaterialYouColor([64, 158, 255]) // 恢复 Material You 默认蓝色
     }
 
     return {

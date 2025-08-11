@@ -21,12 +21,36 @@
           <i class="ri-close-line"></i>
         </button>
       </div>
+      <!-- 歌词对齐控制 -->
+      <div class="lyric-align-controls">
+        <button
+          class="control-btn"
+          :class="{ active: lyricAlign === 'left' }"
+          @click="setLyricAlign('left')"
+        >
+          <i class="ri-align-left"></i>
+        </button>
+        <button
+          class="control-btn"
+          :class="{ active: lyricAlign === 'center' }"
+          @click="setLyricAlign('center')"
+        >
+          <i class="ri-align-center"></i>
+        </button>
+        <button
+          class="control-btn"
+          :class="{ active: lyricAlign === 'right' }"
+          @click="setLyricAlign('right')"
+        >
+          <i class="ri-align-right"></i>
+        </button>
+      </div>
     </header>
 
     <!-- 中部区域：左侧显示音乐封面，右侧显示歌词 -->
-    <main class="player-main">
+    <main class="player-main" @click="toggleView">
       <!-- 音乐封面容器 -->
-      <div class="cover-container">
+      <div class="cover-container" v-if="!isMobile || (isMobile && showCover)">
         <!-- 音乐封面图片，从 Pinia store 获取当前歌曲的封面 URL -->
         <img :src="coverUrl" alt="Music Cover" class="music-cover" />
         <!-- 歌曲信息，在封面下方显示 -->
@@ -36,12 +60,19 @@
         </div>
       </div>
       <!-- 歌词容器 -->
-      <div class="lyrics-container" ref="lyricsContainerRef">
+      <div
+        class="lyrics-container"
+        ref="lyricsContainerRef"
+        :style="{ textAlign: lyricAlign }"
+        :class="{ 'single-lyric-center': lyrics.length === 1 }"
+        v-if="!isMobile || (isMobile && !showCover)"
+      >
         <!-- 歌词内容 -->
         <p
           v-for="(lyric, index) in lyrics"
           :key="index"
           :class="{ 'active-lyric': index === currentLyricIndex }"
+          @click="jumpToLyricTime(lyric.time)"
         >
           {{ lyric.text }}
         </p>
@@ -108,8 +139,43 @@ const playStore = usePlayStore()
 // 使用 Pinia 的 ThemeStore 来管理主题
 const themeStore = useThemeStore()
 
+// 响应式变量，判断是否为手机端（屏幕宽度小于等于 768px）
+const isMobile = ref(window.innerWidth <= 768)
+// 响应式变量，控制在手机端显示封面还是歌词，默认为显示封面
+const showCover = ref(true)
+
+/**
+ * @function handleResize
+ * @description 窗口大小改变时更新 isMobile 变量。
+ */
+const handleResize = () => {
+  isMobile.value = window.innerWidth <= 768
+}
+
+/**
+ * @function toggleView
+ * @description 在手机端切换显示封面或歌词。
+ */
+const toggleView = () => {
+  if (isMobile.value) {
+    showCover.value = !showCover.value
+  }
+}
+
 // 音乐封面 URL，初始化时从 PlayStore 获取当前歌曲的封面，如果为空则使用默认封面
 const coverUrl = ref(playStore.currentSongInfo.cover || '/default-cover.jpg') // 使用绝对路径
+
+// 歌词对齐方式，默认为居中
+const lyricAlign = ref('center')
+
+/**
+ * @function setLyricAlign
+ * @param {string} align - 歌词对齐方式 ('left', 'center', 'right')。
+ * @description 设置歌词的对齐方式。
+ */
+const setLyricAlign = (align) => {
+  lyricAlign.value = align
+}
 
 /**
  * @function watch currentSongInfo
@@ -226,10 +292,14 @@ const getPlayModeIcon = () => {
 // 歌词处理
 const lyrics = computed(() => {
   const lrcContent = playStore.currentSongInfo.lrc
-  if (!lrcContent) return []
+  console.log('原始歌词内容 (lrcContent):', lrcContent) // 添加调试日志
+  if (!lrcContent) {
+    console.warn('lrcContent 为空或未定义，歌词将不会显示。') // 添加警告日志
+    return []
+  }
 
   // 简单的歌词解析，将歌词按行分割
-  return lrcContent
+  const parsedLyrics = lrcContent
     .split('\n')
     .map((line) => {
       // 匹配时间标签，例如 [00:10.123]
@@ -241,9 +311,17 @@ const lyrics = computed(() => {
         const time = minutes * 60 + seconds + milliseconds / (match[3].length === 2 ? 100 : 1000)
         return { time, text: match[4].trim() }
       }
-      return { time: 0, text: line.trim() } // 没有时间标签的行
+      return null // 不匹配时间标签的行返回 null
     })
-    .filter((item) => item.text) // 过滤掉空行
+    .filter(Boolean) // 过滤掉 null 和 undefined，只保留有效歌词对象
+
+  // 如果解析后的歌词为空，但原始歌词内容包含“纯音乐”提示，则添加一个提示
+  if (parsedLyrics.length === 0 && lrcContent && /^\s*纯音乐/.test(lrcContent.trim())) {
+    parsedLyrics.push({ time: 0, text: '纯音乐，请欣赏' })
+  }
+
+  console.log('解析后的歌词 (parsedLyrics):', parsedLyrics) // 添加调试日志
+  return parsedLyrics
 })
 
 // 当前高亮歌词的索引
@@ -297,6 +375,10 @@ onMounted(() => {
   if (themeStore.themeMode === 'album_cover' && playStore.currentSongInfo.cover) {
     themeStore.extractColorFromImage(playStore.currentSongInfo.cover)
   }
+  // 添加窗口大小监听器
+  window.addEventListener('resize', handleResize)
+  // 初始判断一次
+  handleResize()
 })
 
 // 在组件挂载时，如果当前有歌曲，确保歌词滚动到正确位置
@@ -307,11 +389,11 @@ onMounted(() => {
     setTimeout(() => {
       const activeLyricElement = lyricsContainerRef.value?.querySelector('.active-lyric')
       if (activeLyricElement) {
-        const containerHeight = lyricsContainerRef.value.clientHeight
-        const elementOffsetTop = activeLyricElement.offsetTop
-        const elementHeight = activeLyricElement.clientHeight
-        lyricsContainerRef.value.scrollTop =
-          elementOffsetTop - containerHeight / 2 + elementHeight / 2
+        // 使用 scrollIntoView 确保歌词垂直居中
+        activeLyricElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center', // 确保元素在滚动容器中垂直居中
+        })
       }
     }, 100) // 短暂延迟
   }
@@ -319,9 +401,32 @@ onMounted(() => {
 
 // 在组件卸载时，可以执行一些清理工作，例如停止歌词滚动监听（虽然 watch 会自动清理）
 onUnmounted(() => {
-  // 目前没有需要显式清理的事件监听器，因为 watch 会自动管理
+  // 移除窗口大小监听器
+  window.removeEventListener('resize', handleResize)
   console.log('PlayIndex 组件卸载')
 })
+
+/**
+ * @function jumpToLyricTime
+ * @param {number} time - 歌词对应的时间（秒）。
+ * @description 跳转播放器到歌词对应的时间点。
+ */
+const jumpToLyricTime = (time) => {
+  playStore.setCurrentTime(time)
+  // 播放器跳转后，确保歌词也滚动到中心
+  if (lyricsContainerRef.value) {
+    // 延迟执行以确保 DOM 渲染完成
+    setTimeout(() => {
+      const activeLyricElement = lyricsContainerRef.value.querySelector('.active-lyric')
+      if (activeLyricElement) {
+        activeLyricElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+        })
+      }
+    }, 50) // 短暂延迟
+  }
+}
 </script>
 
 <style scoped>
@@ -334,7 +439,11 @@ onUnmounted(() => {
   flex-direction: column; /* 垂直布局 */
   width: 100vw; /* 宽度占满视口 */
   height: 100vh; /* 高度占满视口 */
-  background-color: var(--md-sys-color-background); /* 使用 Material You 背景色 */
+  background: linear-gradient(
+    135deg,
+    var(--md-sys-color-primary-container) 0%,
+    var(--md-sys-color-tertiary-container) 100%
+  );
   color: var(--md-sys-color-on-background); /* 使用 Material You 字体颜色 */
   font-family: 'Roboto', sans-serif; /* 字体 */
   overflow: hidden; /* 防止滚动条 */
@@ -346,7 +455,11 @@ onUnmounted(() => {
   justify-content: space-between; /* 元素两端对齐 */
   align-items: center; /* 垂直居中 */
   padding: 12px 20px; /* 内边距 */
-  background-color: var(--md-sys-color-surface-variant); /* 使用 Material You 表面变体色 */
+  background-color: rgba(var(--md-sys-color-surface-variant-rgb), 0.7); /* 半透明背景 */
+  border-bottom-left-radius: 20px; /* 底部左圆角 */
+  border-bottom-right-radius: 20px; /* 底部右圆角 */
+  margin: 0 20px; /* 左右外边距，使其与容器边缘有间距 */
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); /* 轻微阴影 */
   color: var(--md-sys-color-on-surface-variant);
   -webkit-app-region: drag; /* 允许拖动窗口 */
 }
@@ -397,34 +510,70 @@ onUnmounted(() => {
   background-color: rgba(var(--md-sys-color-error-rgb), 0.1);
 }
 
+/* 歌词对齐控制按钮组样式 */
+.lyric-align-controls {
+  display: flex;
+  gap: 8px;
+  margin-left: auto; /* 将对齐按钮推到右侧 */
+}
+
+.lyric-align-controls .control-btn {
+  font-size: 20px;
+}
+
+.lyric-align-controls .control-btn.active {
+  background-color: rgba(var(--md-sys-color-primary-rgb), 0.2);
+  color: var(--md-sys-color-primary);
+}
+
 /* 中部样式 */
 .player-main {
   flex: 1; /* 占据剩余空间 */
   display: flex; /* 水平布局 */
-  padding: 30px; /* 内边距 */
-  gap: 40px; /* 封面和歌词之间的间距 */
+  padding: 20px; /* 减小内边距 */
+  gap: 30px; /* 减小封面和歌词之间的间距 */
   align-items: center; /* 垂直居中对齐 */
+  position: relative; /* 为背景模糊做准备 */
+  overflow: hidden; /* 确保模糊效果不溢出 */
+}
+
+/* 添加一个伪元素作为背景模糊层 */
+.player-main::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.3); /* 半透明黑色叠加层 */
+  filter: blur(50px); /* 模糊效果 */
+  z-index: -1; /* 放置在内容下方 */
+  opacity: 1; /* 保持不透明度 */
+  transform: scale(1.1); /* 稍微放大以避免边缘模糊 */
 }
 
 /* 封面容器样式 */
 .cover-container {
-  flex: 1; /* 占据一部分空间 */
+  flex: 1; /* 占据一半空间 */
   display: flex;
   flex-direction: column; /* 垂直布局 */
   justify-content: center; /* 垂直居中 */
   align-items: center; /* 水平居中 */
   position: relative; /* 用于定位歌曲信息 */
   padding: 20px; /* 内边距 */
+  background-color: rgba(var(--md-sys-color-surface-variant-rgb), 0.7); /* 半透明背景 */
+  border-radius: 12px; /* 圆角 */
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); /* 轻微阴影 */
 }
 
 /* 音乐封面图片样式 */
 .music-cover {
   width: 80%; /* 封面宽度 */
-  max-width: 350px; /* 最大宽度 */
+  max-width: 450px; /* 最大宽度 */
   aspect-ratio: 1/1; /* 保持正方形 */
   border-radius: 12px; /* 圆角 */
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); /* 阴影效果 */
-  border: 2px solid var(--md-sys-color-outline); /* 边框使用 Material You 轮廓色 */
+  border: none; /* 移除边框 */
   object-fit: cover; /* 确保图片填充容器 */
 }
 
@@ -450,29 +599,39 @@ onUnmounted(() => {
 
 /* 歌词容器样式 */
 .lyrics-container {
-  flex: 1.5; /* 占据更多空间 */
+  flex: 1; /* 占据一半空间 */
   height: 100%; /* 确保容器有高度 */
   overflow-y: auto; /* 垂直滚动 */
   padding-right: 20px; /* 右侧内边距 */
-  line-height: 2.2; /* 调整行高，使歌词更易读 */
-  font-size: 20px; /* 歌词字体大小 */
+  line-height: 2; /* 调整行高，使歌词更易读 */
+  font-size: 18px; /* 歌词字体大小略微调整 */
   color: var(--md-sys-color-on-surface-variant); /* 歌词颜色 */
-  text-align: left; /* 歌词左对齐 */
+  /* text-align 属性通过 Vue 绑定动态控制 */
   scroll-behavior: smooth; /* 平滑滚动 */
-  mask-image: linear-gradient(
-    to bottom,
-    transparent,
-    black 10%,
-    black 90%,
-    transparent
-  ); /* 渐变遮罩 */
+  /* 调整渐变遮罩，使其更平滑 */
+  mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
   -webkit-mask-image: linear-gradient(
     to bottom,
-    transparent,
+    transparent 0%,
     black 10%,
     black 90%,
-    transparent
-  ); /* Webkit 兼容性 */
+    transparent 100%
+  );
+  /* 增加歌词容器的背景，使其与模糊背景区分 */
+  background-color: rgba(
+    var(--md-sys-color-surface-variant-rgb),
+    0.7
+  ); /* 半透明背景，与头部和底部保持一致 */
+  border-radius: 12px; /* 圆角 */
+  padding: 20px; /* 内部填充 */
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); /* 轻微阴影 */
+}
+
+/* 当只有一句歌词时，使其垂直居中 */
+.lyrics-container.single-lyric-center {
+  display: flex;
+  align-items: center; /* 垂直居中 */
+  justify-content: center; /* 水平居中 */
 }
 
 .lyrics-container p {
@@ -486,14 +645,23 @@ onUnmounted(() => {
 
 .lyrics-container .active-lyric {
   color: var(--md-sys-color-primary); /* 高亮歌词颜色使用主色调 */
-  font-size: 24px; /* 高亮歌词字体大小 */
+  font-size: 22px; /* 高亮歌词字体大小略微调整 */
   font-weight: bold; /* 高亮歌词加粗 */
+  background-color: rgba(var(--md-sys-color-primary-rgb), 0.1); /* 高亮歌词背景色 */
+  border-radius: 8px; /* 圆角 */
+  padding: 5px 10px; /* 增加内边距 */
+  display: inline-block; /* 确保背景和内边距生效 */
+  transform: scale(1.05); /* 稍微放大 */
 }
 
 /* 底部播放器控制区域样式 */
 .player-footer {
   padding: 20px 30px; /* 内边距 */
-  background-color: var(--md-sys-color-surface-variant); /* 使用 Material You 表面变体色 */
+  background-color: rgba(var(--md-sys-color-surface-variant-rgb), 0.7); /* 半透明背景 */
+  border-top-left-radius: 20px; /* 顶部左圆角 */
+  border-top-right-radius: 20px; /* 顶部右圆角 */
+  margin: 0 20px 20px 20px; /* 左右和底部外边距 */
+  box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.1); /* 轻微阴影 */
   color: var(--md-sys-color-on-surface-variant);
   display: flex;
   flex-direction: column; /* 垂直布局 */
@@ -614,5 +782,95 @@ onUnmounted(() => {
   cursor: pointer;
   box-shadow: 0 0 4px rgba(var(--color-primary-rgb), 0.5);
   transition: background-color 0.2s ease;
+}
+
+/* 手机端适配 */
+@media (max-width: 768px) {
+  .player-header {
+    padding: 10px 15px;
+    margin: 0 10px;
+    border-bottom-left-radius: 15px;
+    border-bottom-right-radius: 15px;
+  }
+
+  .window-controls,
+  .lyric-align-controls {
+    display: none; /* 手机端隐藏窗口控制和歌词对齐控制 */
+  }
+
+  .player-main {
+    flex-direction: column; /* 手机端垂直布局 */
+    padding: 15px;
+    gap: 15px;
+  }
+
+  .player-main::before {
+    filter: blur(30px); /* 手机端模糊效果稍微减弱 */
+  }
+
+  .cover-container,
+  .lyrics-container {
+    flex: none; /* 取消 flex 伸缩 */
+    width: 100%; /* 宽度占满 */
+    height: 50vh; /* 各占一半高度 */
+    padding: 15px;
+    border-radius: 10px;
+  }
+
+  .music-cover {
+    width: 90%; /* 手机端封面宽度 */
+    max-width: 300px; /* 限制最大宽度 */
+  }
+
+  .song-name {
+    font-size: 24px; /* 手机端字体大小 */
+  }
+
+  .artist-name {
+    font-size: 16px; /* 手机端字体大小 */
+  }
+
+  .lyrics-container {
+    font-size: 16px; /* 手机端歌词字体大小 */
+    padding-right: 15px; /* 调整内边距 */
+  }
+
+  .lyrics-container .active-lyric {
+    font-size: 18px; /* 手机端高亮歌词字体大小 */
+    padding: 3px 8px;
+  }
+
+  .player-footer {
+    padding: 15px 20px;
+    margin: 0 10px 10px 10px;
+    border-top-left-radius: 15px;
+    border-top-right-radius: 15px;
+  }
+
+  .progress-container {
+    width: 95%; /* 手机端进度条宽度 */
+    gap: 10px;
+  }
+
+  .time-display {
+    font-size: 13px; /* 手机端时间显示字体大小 */
+    width: 40px;
+  }
+
+  .controls {
+    gap: 20px; /* 手机端按钮间距 */
+  }
+
+  .player-control-btn {
+    font-size: 28px; /* 手机端按钮图标大小 */
+  }
+
+  .play-pause-btn {
+    font-size: 40px; /* 手机端播放/暂停按钮大小 */
+  }
+
+  .volume-control {
+    display: none; /* 手机端隐藏音量控制 */
+  }
 }
 </style>
