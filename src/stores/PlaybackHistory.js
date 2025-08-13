@@ -14,6 +14,8 @@ export const usePlayStore = defineStore(
   () => {
     // 播放列表：存储当前播放队列中的歌曲详细信息
     const MusicList = ref([])
+    // 每日推荐歌曲列表
+    const dailyRecommendSongs = ref([])
     // 音乐ID（可能用于加载更多歌曲，当前未启用）
     const musicIds = ref(0)
     // 当前页码（可能用于分页加载，当前未启用）
@@ -497,6 +499,7 @@ export const usePlayStore = defineStore(
       playPrev,
       togglePlayMode,
       currentPlayMode,
+      dailyRecommendSongs, // 导出每日推荐歌曲列表
     }
   },
   {

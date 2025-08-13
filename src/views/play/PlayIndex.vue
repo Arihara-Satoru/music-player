@@ -370,40 +370,76 @@ function closeWindow() {
   // 实际的关闭窗口逻辑可能需要与 Electron 或其他桌面应用框架集成
 }
 
-// 在组件挂载时，如果当前主题模式是专辑封面取色，且有歌曲封面，则提取颜色
+// 在组件挂载时执行的逻辑
 onMounted(() => {
+  // 如果当前主题模式是专辑封面取色，且有歌曲封面，则提取颜色
   if (themeStore.themeMode === 'album_cover' && playStore.currentSongInfo.cover) {
     themeStore.extractColorFromImage(playStore.currentSongInfo.cover)
   }
-  // 添加窗口大小监听器
+  // 添加窗口大小监听器，用于响应式布局
   window.addEventListener('resize', handleResize)
-  // 初始判断一次
+  // 初始判断一次，设置 isMobile 状态
   handleResize()
-})
 
-// 在组件挂载时，如果当前有歌曲，确保歌词滚动到正确位置
-onMounted(() => {
-  // 初始加载时，如果歌词存在，确保滚动到当前时间对应的歌词
+  // 确保歌词在组件挂载时滚动到正确位置
   if (playStore.currentHash && lyrics.value.length > 0) {
-    // 延迟执行以确保 DOM 渲染完成
+    // 延迟执行以确保 DOM 渲染完成，避免获取不到元素
     setTimeout(() => {
       const activeLyricElement = lyricsContainerRef.value?.querySelector('.active-lyric')
       if (activeLyricElement) {
-        // 使用 scrollIntoView 确保歌词垂直居中
+        // 使用 scrollIntoView 确保歌词垂直居中显示
         activeLyricElement.scrollIntoView({
-          behavior: 'smooth',
+          behavior: 'smooth', // 平滑滚动
           block: 'center', // 确保元素在滚动容器中垂直居中
         })
       }
     }, 100) // 短暂延迟
   }
+
+  // 监听 audioPlayer 实例，当其存在时添加播放/暂停事件监听器
+  watch(
+    () => playStore.audioPlayer,
+    (newPlayer) => {
+      if (newPlayer) {
+        // 移除旧的监听器，防止重复添加
+        if (playStore.audioPlayer) {
+          playStore.audioPlayer.removeEventListener('play', handleAudioPlay)
+          playStore.audioPlayer.removeEventListener('pause', handleAudioPause)
+        }
+        // 添加新的监听器
+        newPlayer.addEventListener('play', handleAudioPlay)
+        newPlayer.addEventListener('pause', handleAudioPause)
+        // 初始同步播放状态
+        playStore.isPlaying = !newPlayer.paused
+      }
+    },
+    { immediate: true }, // 立即执行一次，确保初始同步
+  )
 })
 
-// 在组件卸载时，可以执行一些清理工作，例如停止歌词滚动监听（虽然 watch 会自动清理）
+// 处理音频播放事件
+const handleAudioPlay = () => {
+  console.log('Audio is playing (system event)')
+  playStore.isPlaying = true
+}
+
+// 处理音频暂停事件
+const handleAudioPause = () => {
+  console.log('Audio is paused (system event)')
+  playStore.isPlaying = false
+}
+
+// 在组件卸载时执行的清理工作
 onUnmounted(() => {
   // 移除窗口大小监听器
   window.removeEventListener('resize', handleResize)
   console.log('PlayIndex 组件卸载')
+
+  // 移除 audioPlayer 的事件监听器，防止内存泄漏
+  if (playStore.audioPlayer) {
+    playStore.audioPlayer.removeEventListener('play', handleAudioPlay)
+    playStore.audioPlayer.removeEventListener('pause', handleAudioPause)
+  }
 })
 
 /**

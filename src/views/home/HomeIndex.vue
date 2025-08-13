@@ -1,17 +1,25 @@
 <script setup>
 import { useRouter } from 'vue-router'
 import { getRecommandMusic } from '@/api/RecommandMusic'
-import { ref } from 'vue'
+import { usePlayStore } from '@/stores/PlaybackHistory' // 引入播放状态管理
 
 const router = useRouter()
-const songs = ref([])
 const recommandMusic = async () => {
   try {
     // 调用每日推荐接口
     const response = await getRecommandMusic()
     console.log('每日推荐数据:', response)
-    songs.value = response.data.song_list
-    console.log('歌曲列表:', songs.value)
+    const playStore = usePlayStore()
+    playStore.dailyRecommendSongs = response.data.song_list // 将每日推荐歌曲存储到 store
+    console.log('每日推荐歌曲列表已存储:', playStore.dailyRecommendSongs)
+
+    // 跳转到歌单详情页，并传递一个特殊类型
+    router.push({
+      name: 'playlist', // 假设歌单详情页的路由名为 'playlist'
+      query: {
+        type: 'daily_recommend', // 标识为每日推荐
+      },
+    })
   } catch (error) {
     console.error('获取每日推荐失败:', error)
   }
@@ -20,9 +28,11 @@ const recommandMusic = async () => {
 const fetchAIRecommend = async () => {
   try {
     // 获取当前播放历史或喜欢的音乐ID
-    const audioIds = '1,2,3' // 这里应该是动态获取的album_audio_id
-    // 调用AI推荐接口
-    const response = await fetch(`/ai/recommend?album_audio_id=${audioIds}`)
+    // 获取当前播放历史或喜欢的音乐ID
+    // TODO: 这里应该是动态获取的album_audio_id，目前使用硬编码作为示例
+    const audioIds = '1,2,3'
+    // 调用AI推荐接口，通过代理转发到后端
+    const response = await fetch(`/api/ai/recommend?album_audio_id=${audioIds}`)
     const data = await response.json()
     // 处理返回的数据
     router.push({
@@ -62,10 +72,11 @@ const fetchAIRecommend = async () => {
     </section>
 
     <!-- 歌曲列表（如果存在） -->
-    <section class="search-results" v-if="songs.length">
+    <!-- 歌曲列表（如果存在） - 每日推荐现在会跳转到歌单页面，所以这里不再直接显示 -->
+    <!-- <section class="search-results" v-if="songs.length">
       <h2 class="section-title">推荐歌曲</h2>
       <song-list :musicList="songs" />
-    </section>
+    </section> -->
 
     <!-- 占位符内容：热门歌单 -->
     <section class="placeholder-section">
